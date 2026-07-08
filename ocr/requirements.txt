@@ -1,0 +1,4 @@
+# Choose one local OCR backend and install its own dependencies.
+# Examples to evaluate:
+# pix2text
+# pix2tex[gui]

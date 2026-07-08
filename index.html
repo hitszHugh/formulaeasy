@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>公式图片转 Word / LaTeX</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace" aria-labelledby="page-title">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Math Formula</p>
+            <h1 id="page-title">公式图片转 Word / LaTeX</h1>
+          </div>
+          <button class="cancel-button" id="clearBtn" type="button" title="取消">
+            <span>取消</span>
+          </button>
+        </header>
+
+        <div class="editor-grid">
+          <section class="panel image-panel">
+            <div class="panel-header">
+              <h2>上传公式图片</h2>
+              <button id="chooseBtn" type="button">选择图片</button>
+              <input id="imageInput" type="file" accept="image/*" hidden />
+            </div>
+
+            <div class="drop-zone" id="dropZone">
+              <div class="preview-empty" id="previewEmpty">
+                <strong>拖入、粘贴或选择图片</strong>
+                <span>支持截图后 Ctrl+V、照片、PNG、JPG</span>
+              </div>
+              <img id="previewImage" alt="公式图片预览" hidden />
+            </div>
+          </section>
+
+          <section class="panel output-panel">
+            <div class="panel-header">
+              <h2>识别结果</h2>
+              <button id="copyBtn" type="button">复制</button>
+            </div>
+            <textarea id="resultOutput" spellcheck="false" readonly></textarea>
+          </section>
+        </div>
+
+        <section class="tools" aria-label="识别选项">
+          <div class="segmented" role="radiogroup" aria-label="输出格式">
+            <label>
+              <input type="radio" name="outputFormat" value="word" />
+              <span>Word 默认</span>
+            </label>
+            <label>
+              <input type="radio" name="outputFormat" value="latex" checked />
+              <span>LaTeX</span>
+            </label>
+          </div>
+          <button id="recognizeBtn" type="button" disabled>识别图片</button>
+        </section>
+
+        <section class="preview" aria-label="状态">
+          <div class="file-info">
+            <strong id="fileName">未选择图片</strong>
+            <span>先上传清晰公式截图</span>
+          </div>
+          <div class="status" id="statusText" role="status" aria-live="polite">准备就绪</div>
+        </section>
+      </section>
+    </main>
+
+    <script src="./app.js?v=20260707-6"></script>
+  </body>
+</html>
