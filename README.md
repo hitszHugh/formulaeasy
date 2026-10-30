@@ -85,5 +85,5 @@ these glyphs:
 ```
 
 Writing the number as `\textcircled{1}` also works and does not depend on the
-font. Whenever a result contains such a character, the server appends the same
-hint to `notes`.
+font. This section documents the cause only: the app cannot know which engine or
+document class you compile with, so it does not add preamble lines for you.
