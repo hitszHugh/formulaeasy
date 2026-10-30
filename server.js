@@ -281,6 +281,19 @@ function getLocalNetworkUrls(portNumber) {
   return urls;
 }
 
+const CIRCLED_CHARACTER_PATTERN = /[\u2460-\u24FF]/u;
+
+const CIRCLED_CHARACTER_NOTE =
+  "检测到带圈序号（①②③ 等）：这类字符位于 U+2460–U+24FF，xeCJK 默认不把它们归入 CJK 字符类，会排进拉丁字体而静默缺字。使用 ctex 时在导言区加 \\xeCJKDeclareCharClass{CJK}{\"2460->\"24FF}，或把序号改写为 \\textcircled{1}。";
+
+function addTypesettingNotes(result) {
+  if (!CIRCLED_CHARACTER_PATTERN.test(result.latex) || result.notes.includes(CIRCLED_CHARACTER_NOTE)) {
+    return result;
+  }
+
+  return { ...result, notes: [...result.notes, CIRCLED_CHARACTER_NOTE] };
+}
+
 function parseLatexResult(text) {
   const cleaned = text
     .trim()
@@ -291,7 +304,7 @@ function parseLatexResult(text) {
   try {
     const parsed = JSON.parse(cleaned);
     if (typeof parsed.latex === "string" && parsed.latex.trim()) {
-      return {
+      return addTypesettingNotes({
         latex: normalizeRecognizedLatex(parsed.latex),
         packages: Array.isArray(parsed.packages)
           ? [...new Set(parsed.packages.filter((name) => typeof name === "string" && /^[a-zA-Z0-9][a-zA-Z0-9-]*$/.test(name)))]
@@ -299,7 +312,7 @@ function parseLatexResult(text) {
         notes: Array.isArray(parsed.notes)
           ? parsed.notes.filter((note) => typeof note === "string" && note.trim()).map((note) => note.trim())
           : [],
-      };
+      });
     }
   } catch {
     // Fall back to plain text when the model returns only the formula.
@@ -309,7 +322,7 @@ function parseLatexResult(text) {
     throw new Error("没有从图片中识别到公式");
   }
 
-  return { latex: normalizeRecognizedLatex(cleaned), packages: [], notes: [] };
+  return addTypesettingNotes({ latex: normalizeRecognizedLatex(cleaned), packages: [], notes: [] });
 }
 
 function normalizeRecognizedLatex(latex) {

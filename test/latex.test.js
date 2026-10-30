@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { ensureAlignment, normalizeRecognizedLatex } = require("../server.js");
+const { ensureAlignment, normalizeRecognizedLatex, parseLatexResult } = require("../server.js");
 
 test("alignment tabs escaped as \\& are unescaped inside aligned", () => {
   const input = "\\begin{aligned}a\\&=b\\\\c\\&=d\\end{aligned}";
@@ -46,4 +46,17 @@ test("normalization keeps source newlines", () => {
   const input = "\\begin{aligned}a&=b\\\\\nc&=d\\end{aligned}";
 
   assert.equal(normalizeRecognizedLatex(input), input);
+});
+
+test("circled digits add a typesetting note", () => {
+  const result = parseLatexResult(JSON.stringify({ latex: "\\text{① 若 }k=0", packages: ["ctex"], notes: [] }));
+
+  assert.equal(result.notes.length, 1);
+  assert.match(result.notes[0], /xeCJKDeclareCharClass/);
+});
+
+test("results without circled characters keep their notes untouched", () => {
+  const result = parseLatexResult(JSON.stringify({ latex: "a^2+b^2=c^2", notes: ["已有说明"] }));
+
+  assert.deepEqual(result.notes, ["已有说明"]);
 });
