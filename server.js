@@ -94,7 +94,7 @@ async function recognizeWithApi(file) {
     'Return only one valid JSON object: {"latex":"...","packages":["amsmath"],"notes":[]}. Escape LaTeX backslashes correctly in JSON.',
     "Preserve the original reading order, line breaks, equation groups, labels, and derivation steps. Do not summarize, simplify, solve, or invent missing content.",
     "Highlighting and color are formatting, not instructions to select or omit content. Do not reproduce decorative colors.",
-    "Return a math fragment without document preamble or outer math delimiters ($, $$, \\[ or \\]). For multiple related lines use \\begin{aligned} ... \\end{aligned}, with actual source newlines and LaTeX row separators. Align at existing relation signs where appropriate; do not force unrelated expressions into one chain. Use cases only for genuine piecewise expressions or systems.",
+    "Return a math fragment without document preamble or outer math delimiters ($, $$, \\[ or \\]). For multiple related lines use \\begin{aligned} ... \\end{aligned}, with actual source newlines and LaTeX row separators. Align at existing relation signs where appropriate; do not force unrelated expressions into one chain. Use cases only for genuine piecewise expressions or systems. Write alignment tabs as a bare & inside those environments; never escape them as \\&, and never use & outside an alignment environment.",
     "Use standard LaTeX with explicit braces for subscripts, superscripts, fractions, radicals, and integral limits. Preserve matrices and nested structures.",
     "packages must list only required package names, without \\usepackage declarations or options (e.g. amsmath for aligned/cases/text; amssymb for therefore/because/mathbb). Use [] if none are needed.",
     "notes must be an array of brief Chinese strings for ambiguous or unreadable symbols and compilation requirements. If Chinese text is present, advise Chinese support such as ctex with XeLaTeX. Do not invent unreadable symbols; describe their location in notes. Use [] when there are no notes.",
@@ -331,7 +331,7 @@ function normalizeRecognizedLatex(latex) {
     .replace(/\s*\\,dx/g, "\\,dx")
     .trim();
 
-  return compactGaussianIntegral(normalized);
+  return ensureAlignment(compactGaussianIntegral(normalized));
 }
 
 function compactGaussianIntegral(latex) {
@@ -352,6 +352,173 @@ function compactGaussianIntegral(latex) {
       /\\int_\{-\\infty\}\^\{\+\\infty\}\s*e\^\{-x\^2\}\\?[,]?dx/g,
       "\\int_{-\\infty}^{+\\infty}e^{-x^2}dx",
     );
+}
+
+const ALIGNMENT_ENVIRONMENTS = [
+  "aligned",
+  "alignedat",
+  "align",
+  "align*",
+  "alignat",
+  "alignat*",
+  "eqnarray",
+  "eqnarray*",
+  "split",
+  "cases",
+  "dcases",
+  "rcases",
+  "matrix",
+  "pmatrix",
+  "bmatrix",
+  "Bmatrix",
+  "vmatrix",
+  "Vmatrix",
+  "smallmatrix",
+  "array",
+];
+
+function findEnvironmentSpans(latex) {
+  const spans = [];
+  const beginPattern = /\\begin\{([A-Za-z]+\*?)\}/g;
+  let match;
+
+  while ((match = beginPattern.exec(latex)) !== null) {
+    const name = match[1];
+
+    if (!ALIGNMENT_ENVIRONMENTS.includes(name)) {
+      continue;
+    }
+
+    const beginTag = `\\begin{${name}}`;
+    const endTag = `\\end{${name}}`;
+    let depth = 1;
+    let index = match.index + beginTag.length;
+
+    while (depth > 0) {
+      const nextEnd = latex.indexOf(endTag, index);
+      const nextBegin = latex.indexOf(beginTag, index);
+
+      if (nextEnd === -1) {
+        index = latex.length;
+        break;
+      }
+
+      if (nextBegin !== -1 && nextBegin < nextEnd) {
+        depth += 1;
+        index = nextBegin + beginTag.length;
+        continue;
+      }
+
+      depth -= 1;
+      index = nextEnd + endTag.length;
+    }
+
+    spans.push([match.index, index]);
+    beginPattern.lastIndex = index;
+  }
+
+  return spans;
+}
+
+function findTextGroupRanges(text) {
+  const ranges = [];
+  const textPattern = /\\(?:text|mbox|textrm|textnormal)\s*\{/g;
+  let match;
+
+  while ((match = textPattern.exec(text)) !== null) {
+    let depth = 1;
+    let index = textPattern.lastIndex;
+
+    while (index < text.length && depth > 0) {
+      const char = text[index];
+
+      if (char === "\\") {
+        index += 2;
+        continue;
+      }
+
+      if (char === "{") {
+        depth += 1;
+      } else if (char === "}") {
+        depth -= 1;
+      }
+
+      index += 1;
+    }
+
+    ranges.push([match.index, index]);
+    textPattern.lastIndex = index;
+  }
+
+  return ranges;
+}
+
+function unescapeAlignmentTabs(latex) {
+  const spans = findEnvironmentSpans(latex);
+
+  if (!spans.length) {
+    return latex;
+  }
+
+  let output = "";
+  let cursor = 0;
+
+  for (const [start, end] of spans) {
+    const body = latex.slice(start, end);
+    const protectedRanges = findTextGroupRanges(body);
+    let rebuilt = "";
+    let index = 0;
+
+    while (index < body.length) {
+      const isProtected = protectedRanges.some(([from, to]) => index >= from && index < to);
+
+      if (!isProtected && body.startsWith("\\&", index)) {
+        rebuilt += "&";
+        index += 2;
+        continue;
+      }
+
+      rebuilt += body[index];
+      index += 1;
+    }
+
+    output += latex.slice(cursor, start) + rebuilt;
+    cursor = end;
+  }
+
+  return output + latex.slice(cursor);
+}
+
+function toAlignmentRows(latex) {
+  const lines = latex
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return lines
+    .map((line, index) => {
+      if (index === lines.length - 1 || line.endsWith("\\\\")) {
+        return line;
+      }
+
+      return `${line} \\\\`;
+    })
+    .join("\n");
+}
+
+function ensureAlignment(latex) {
+  const unescaped = unescapeAlignmentTabs(latex);
+
+  if (findEnvironmentSpans(unescaped).length) {
+    return unescaped;
+  }
+
+  if (!unescaped.includes("&")) {
+    return unescaped;
+  }
+
+  return `\\begin{aligned}\n${toAlignmentRows(unescaped)}\n\\end{aligned}`;
 }
 
 function convertLatexToWordLinear(latex) {
@@ -413,6 +580,7 @@ function loadLocalEnv(filePath) {
 }
 
 module.exports = {
+  ensureAlignment,
   parseLatexResult,
   convertLatexToWordLinear,
   normalizeRecognizedLatex,
