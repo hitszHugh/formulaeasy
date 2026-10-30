@@ -41,11 +41,13 @@ app.post("/api/recognize", upload.single("formulaImage"), async (req, res) => {
   }
 
   try {
-    const latex = await recognizeFormulaFromImage(req.file);
+    const { latex, packages, notes } = await recognizeFormulaFromImage(req.file);
     const word = convertLatexToWordLinear(latex);
 
     res.json({
       latex,
+      packages,
+      notes,
       word,
       result: req.body.format === "latex" ? latex : word,
     });
@@ -75,8 +77,7 @@ if (require.main === module) {
 
 async function recognizeFormulaFromImage(file) {
   if (ocrProvider === "local") {
-    const latex = await recognizeWithLocal(file);
-    return normalizeRecognizedLatex(latex);
+    return recognizeWithLocal(file);
   }
 
   if (ocrProvider !== "api") {
@@ -89,16 +90,15 @@ async function recognizeFormulaFromImage(file) {
 async function recognizeWithApi(file) {
   const imageUrl = `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
   const prompt = [
-    "You are a formula OCR engine.",
-    "Read the mathematical formula in the image and return only one JSON object.",
-    "The JSON shape must be {\"latex\":\"...\"}.",
-    "Use standard LaTeX with explicit braces for all subscripts and superscripts.",
-    "Use \\frac for fractions, \\sqrt for radicals, \\sum_{...}^{...} for summations, and \\sin/\\cos/\\tan for trigonometric functions.",
-    "For definite integrals, always use \\int_{lower}^{upper} integrand \\, dx.",
-    "Never merge an integral limit with the integrand; for example use \\int_{-\\infty}^{+\\infty} e^{-x^{2}} \\, dx.",
-    "Use {+\\infty} or {-\\infty} as complete grouped limits when infinity appears as a limit.",
-    "For the Gaussian integral from negative infinity to positive infinity, return exactly \\int_{-\\infty}^{+\\infty}e^{-x^2}dx.",
-    "Do not add explanations, Markdown, code fences, or surrounding text.",
+    "You are a formula OCR engine. Transcribe ALL mathematical expressions in the entire image, including highlighted and non-highlighted content.",
+    'Return only one valid JSON object: {"latex":"...","packages":["amsmath"],"notes":[]}. Escape LaTeX backslashes correctly in JSON.',
+    "Preserve the original reading order, line breaks, equation groups, labels, and derivation steps. Do not summarize, simplify, solve, or invent missing content.",
+    "Highlighting and color are formatting, not instructions to select or omit content. Do not reproduce decorative colors.",
+    "Return a math fragment without document preamble or outer math delimiters ($, $$, \\[ or \\]). For multiple related lines use \\begin{aligned} ... \\end{aligned}, with actual source newlines and LaTeX row separators. Align at existing relation signs where appropriate; do not force unrelated expressions into one chain. Use cases only for genuine piecewise expressions or systems.",
+    "Use standard LaTeX with explicit braces for subscripts, superscripts, fractions, radicals, and integral limits. Preserve matrices and nested structures.",
+    "packages must list only required package names, without \\usepackage declarations or options (e.g. amsmath for aligned/cases/text; amssymb for therefore/because/mathbb). Use [] if none are needed.",
+    "notes must be an array of brief Chinese strings for ambiguous or unreadable symbols and compilation requirements. If Chinese text is present, advise Chinese support such as ctex with XeLaTeX. Do not invent unreadable symbols; describe their location in notes. Use [] when there are no notes.",
+    "Do not add Markdown fences or text outside the JSON object.",
   ].join(" ");
 
   let response;
@@ -140,7 +140,7 @@ async function recognizeWithApi(file) {
   }
 
   const text = extractOutputText(data);
-  return normalizeRecognizedLatex(parseLatexResult(text));
+  return parseLatexResult(text);
 }
 
 async function recognizeWithLocal(file) {
@@ -291,7 +291,15 @@ function parseLatexResult(text) {
   try {
     const parsed = JSON.parse(cleaned);
     if (typeof parsed.latex === "string" && parsed.latex.trim()) {
-      return parsed.latex.trim();
+      return {
+        latex: normalizeRecognizedLatex(parsed.latex),
+        packages: Array.isArray(parsed.packages)
+          ? [...new Set(parsed.packages.filter((name) => typeof name === "string" && /^[a-zA-Z0-9][a-zA-Z0-9-]*$/.test(name)))]
+          : [],
+        notes: Array.isArray(parsed.notes)
+          ? parsed.notes.filter((note) => typeof note === "string" && note.trim()).map((note) => note.trim())
+          : [],
+      };
     }
   } catch {
     // Fall back to plain text when the model returns only the formula.
@@ -301,13 +309,13 @@ function parseLatexResult(text) {
     throw new Error("没有从图片中识别到公式");
   }
 
-  return cleaned;
+  return { latex: normalizeRecognizedLatex(cleaned), packages: [], notes: [] };
 }
 
 function normalizeRecognizedLatex(latex) {
   const normalized = latex
     .trim()
-    .replace(/\s+/g, " ")
+    .replace(/[^\S\r\n]+/g, " ")
     .replace(/\\int_\(([^()]+)\)\^\+\\inftye/g, "\\int_{$1}^{+\\infty} e")
     .replace(/\\int_\(([^()]+)\)\^\+\\infty\s*e/g, "\\int_{$1}^{+\\infty} e")
     .replace(/\\int_\(([^()]+)\)\^\(([^()]+)\)/g, "\\int_{$1}^{$2}")
@@ -405,6 +413,7 @@ function loadLocalEnv(filePath) {
 }
 
 module.exports = {
+  parseLatexResult,
   convertLatexToWordLinear,
   normalizeRecognizedLatex,
 };

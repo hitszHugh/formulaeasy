@@ -27,7 +27,7 @@
               <input id="imageInput" type="file" accept="image/*" hidden />
             </div>
 
-            <div class="drop-zone" id="dropZone">
+            <div class="drop-zone" id="dropZone" tabindex="0" role="region" aria-label="原图预览，可滚动查看完整图片">
               <div class="preview-empty" id="previewEmpty">
                 <strong>拖入、粘贴或选择图片</strong>
                 <span>支持截图后 Ctrl+V、照片、PNG、JPG</span>
@@ -41,9 +41,17 @@
               <h2>识别结果</h2>
               <button id="copyBtn" type="button">复制</button>
             </div>
-            <textarea id="resultOutput" spellcheck="false" readonly></textarea>
+            <textarea id="resultOutput" spellcheck="false" aria-label="可编辑的公式源码"></textarea>
           </section>
         </div>
+
+        <section class="latex-metadata" id="latexMetadata" aria-label="LaTeX 编译建议" hidden>
+          <h2>所需宏包（模型建议）</h2>
+          <pre id="packagesOutput"></pre>
+          <h2>说明与待核对项</h2>
+          <ul id="notesOutput"></ul>
+          <p>公式为数学片段，粘贴到数学环境内使用；宏包建议需自行核对，编辑公式后不会自动更新。</p>
+        </section>
 
         <section class="tools" aria-label="识别选项">
           <div class="segmented" role="radiogroup" aria-label="输出格式">

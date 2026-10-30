@@ -11,7 +11,30 @@ const resultOutput = document.querySelector("#resultOutput");
 const statusText = document.querySelector("#statusText");
 const fileName = document.querySelector("#fileName");
 
+const metadata = document.querySelector("#latexMetadata");
+const packagesOutput = document.querySelector("#packagesOutput");
+const notesOutput = document.querySelector("#notesOutput");
 let selectedFile = null;
+
+function clearMetadata() {
+  metadata.hidden = true;
+  packagesOutput.textContent = "";
+  notesOutput.replaceChildren();
+}
+
+function showMetadata(data) {
+  const packages = Array.isArray(data.packages) ? data.packages : [];
+  packagesOutput.textContent = packages.length
+    ? packages.map((name) => `\\usepackage{${name}}`).join("\n")
+    : "模型未提供宏包建议，请按公式内容核对。";
+  notesOutput.replaceChildren();
+  for (const note of Array.isArray(data.notes) ? data.notes : []) {
+    const item = document.createElement("li");
+    item.textContent = note;
+    notesOutput.append(item);
+  }
+  metadata.hidden = getOutputFormat() !== "latex";
+}
 
 function setStatus(message) {
   statusText.textContent = message;
@@ -36,6 +59,7 @@ function setSelectedFile(file, source = "file") {
   fileName.textContent =
     source === "paste" ? `粘贴图片 ${new Date().toLocaleTimeString()}` : file.name;
   resultOutput.value = "";
+  clearMetadata();
   recognizeBtn.disabled = false;
 
   const reader = new FileReader();
@@ -43,6 +67,8 @@ function setSelectedFile(file, source = "file") {
     previewImage.src = reader.result;
     previewImage.hidden = false;
     previewEmpty.hidden = true;
+    dropZone.scrollTop = 0;
+    dropZone.scrollLeft = 0;
   });
   reader.readAsDataURL(file);
 
@@ -71,6 +97,7 @@ async function recognizeImage() {
     return;
   }
 
+  clearMetadata();
   const formData = new FormData();
   formData.append("formulaImage", selectedFile);
   formData.append("format", getOutputFormat());
@@ -94,9 +121,11 @@ async function recognizeImage() {
       getOutputFormat() === "latex" ? data.latex : data.word,
       getOutputFormat(),
     );
+    showMetadata(data);
     setStatus("识别完成");
   } catch (error) {
     resultOutput.value = "";
+  clearMetadata();
     setStatus(error.message);
   } finally {
     recognizeBtn.disabled = false;
@@ -110,7 +139,7 @@ function normalizeDisplayedFormula(value, format) {
 
   const latex = value
     .trim()
-    .replace(/\s+/g, " ")
+    .replace(/[^\S\r\n]+/g, " ")
     .replace(
       /\\int_\(-\\infty\)\^\+\\inftye\^\{-x\^2\}dx/g,
       "\\int_{-\\infty}^{+\\infty}e^{-x^2}dx",
@@ -176,6 +205,7 @@ function clearAll() {
   selectedFile = null;
   imageInput.value = "";
   resultOutput.value = "";
+  clearMetadata();
   previewImage.src = "";
   previewImage.hidden = true;
   previewEmpty.hidden = false;
@@ -203,6 +233,7 @@ window.addEventListener("paste", (event) => {
 
 [...outputFormatInputs].forEach((input) => {
   input.addEventListener("change", () => {
+    metadata.hidden = true;
     if (resultOutput.value.trim()) {
       setStatus("输出格式已切换，请重新识别以刷新结果");
     }

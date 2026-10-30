@@ -158,10 +158,11 @@ h2 {
   position: relative;
   display: grid;
   flex: 1;
-  place-items: center;
+  align-items: start;
+  justify-items: center;
   height: 316px;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
   padding: 10px;
   background: #fbfcfd;
 }
@@ -198,12 +199,13 @@ h2 {
   width: auto;
   height: auto;
   max-width: 100%;
-  max-height: 100%;
+  max-height: none;
   object-fit: contain;
 }
 
 textarea {
   width: 100%;
+  min-height: 0;
   flex: 1;
   resize: none;
   border: 0;
@@ -330,3 +332,19 @@ textarea {
     text-align: left;
   }
 }
+
+/* Keep hidden previews and metadata out of the layout. */
+[hidden] { display: none !important; }
+.panel-header { flex-shrink: 0; }
+.preview-empty { align-self: center; }
+.latex-metadata {
+  width: min(100%, 1080px);
+  align-self: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.latex-metadata pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.latex-metadata ul { padding-left: 20px; overflow-wrap: anywhere; }
+.latex-metadata p { color: var(--muted); }

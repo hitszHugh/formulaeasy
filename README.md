@@ -40,3 +40,19 @@ LOCAL_OCR_SCRIPT=ocr/local_ocr.py
 ## Security
 
 Never commit `.env`. Use `.env.example` for public configuration samples.
+
+## Recognition output
+
+The API returns `latex`, `word`, `result`, plus `packages` (package names) and
+`notes` (compilation advice and recognition uncertainties). Older responses with
+only `latex` and plain LaTeX responses remain supported, with empty metadata.
+Package suggestions are model-generated and should be checked before use.
+
+LaTeX output is a math fragment without outer math delimiters. Put it inside a
+math environment in your document. The prompt asks the model to preserve reading
+order, equation groups and source line breaks rather than redesign the layout.
+This improves instructions but does not guarantee recognition accuracy.
+
+The image panel scrolls independently to show long images at a readable width.
+The result is editable source text; no formula rendering or TeX compiler is added.
+LaTeX metadata is shown separately and is not included when copying the formula.
