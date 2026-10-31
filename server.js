@@ -669,9 +669,10 @@ function convertLatexToWordLinear(latex) {
 }
 
 // Word 粘 MathML 会直接生成公式对象；xmlns 缺失时它不认。
+// aligned 里的 & 是排版分隔符，Word 会把空列也建成矩阵列，所以先去掉。
 function toMathML(latex) {
   try {
-    const mathml = temml.renderToString(latex, {
+    const mathml = temml.renderToString(latex.replace(/(?<!\\)&/g, ""), {
       displayMode: true,
       throwOnError: false,
       annotate: false,
