@@ -14,7 +14,10 @@ const fileName = document.querySelector("#fileName");
 const metadata = document.querySelector("#latexMetadata");
 const packagesOutput = document.querySelector("#packagesOutput");
 const notesOutput = document.querySelector("#notesOutput");
+const formulaPreview = document.querySelector("#formulaPreview");
+const copyImageBtn = document.querySelector("#copyImageBtn");
 let selectedFile = null;
+let previewTimer = null;
 
 function clearMetadata() {
   metadata.hidden = true;
@@ -34,6 +37,104 @@ function showMetadata(data) {
     notesOutput.append(item);
   }
   metadata.hidden = getOutputFormat() !== "latex";
+}
+
+function schedulePreview() {
+  window.clearTimeout(previewTimer);
+  previewTimer = window.setTimeout(renderPreview, 200);
+}
+
+function renderPreview() {
+  const latex = resultOutput.value.trim();
+
+  if (!latex) {
+    formulaPreview.replaceChildren();
+    formulaPreview.dataset.empty = "true";
+    formulaPreview.textContent = "识别后在这里预览渲染结果";
+    return;
+  }
+
+  formulaPreview.dataset.empty = "false";
+
+  if (!window.MathJax || typeof window.MathJax.tex2svg !== "function") {
+    formulaPreview.textContent = "渲染引擎尚未加载";
+    return;
+  }
+
+  try {
+    formulaPreview.replaceChildren(window.MathJax.tex2svg(latex, { display: true }));
+  } catch (error) {
+    formulaPreview.textContent = `渲染失败：${error.message || error}`;
+  }
+}
+
+function renderSvgToPng(svg, scale) {
+  return new Promise((resolve, reject) => {
+    const bounds = svg.getBoundingClientRect();
+    const width = Math.max(1, Math.round(bounds.width * scale));
+    const height = Math.max(1, Math.round(bounds.height * scale));
+    const clone = svg.cloneNode(true);
+    clone.setAttribute("width", String(bounds.width));
+    clone.setAttribute("height", String(bounds.height));
+
+    const source = new XMLSerializer().serializeToString(clone);
+    const url = URL.createObjectURL(new Blob([source], { type: "image/svg+xml;charset=utf-8" }));
+    const image = new Image();
+
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d");
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, width, height);
+      context.drawImage(image, 0, 0, width, height);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error("canvas 导出失败"))),
+        "image/png",
+      );
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("SVG 载入失败"));
+    };
+
+    image.src = url;
+  });
+}
+
+function downloadBlob(blob) {
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `formula-${Date.now()}.png`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+async function copyImage() {
+  const svg = formulaPreview.querySelector("svg");
+
+  if (!svg) {
+    setStatus("还没有可复制的公式");
+    return;
+  }
+
+  try {
+    const png = await renderSvgToPng(svg, 3);
+
+    if (navigator.clipboard && window.ClipboardItem) {
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": png })]);
+      setStatus("图片已复制到剪贴板");
+      return;
+    }
+
+    downloadBlob(png);
+    setStatus("当前浏览器不支持复制图片，已改为下载");
+  } catch (error) {
+    setStatus(`复制图片失败：${error.message || error}`);
+  }
 }
 
 function setStatus(message) {
@@ -122,10 +223,12 @@ async function recognizeImage() {
       getOutputFormat(),
     );
     showMetadata(data);
+    renderPreview();
     setStatus("识别完成");
   } catch (error) {
     resultOutput.value = "";
-  clearMetadata();
+    clearMetadata();
+    renderPreview();
     setStatus(error.message);
   } finally {
     recognizeBtn.disabled = false;
@@ -206,6 +309,7 @@ function clearAll() {
   imageInput.value = "";
   resultOutput.value = "";
   clearMetadata();
+  renderPreview();
   previewImage.src = "";
   previewImage.hidden = true;
   previewEmpty.hidden = false;
@@ -218,7 +322,9 @@ chooseBtn.addEventListener("click", () => imageInput.click());
 imageInput.addEventListener("change", () => setSelectedFile(imageInput.files[0]));
 recognizeBtn.addEventListener("click", recognizeImage);
 copyBtn.addEventListener("click", copyResult);
+copyImageBtn.addEventListener("click", copyImage);
 clearBtn.addEventListener("click", clearAll);
+resultOutput.addEventListener("input", schedulePreview);
 
 window.addEventListener("paste", (event) => {
   const imageFile = getImageFromClipboard(event);
@@ -259,3 +365,7 @@ dropZone.addEventListener("drop", (event) => {
 });
 
 clearAll();
+
+if (window.MathJax && window.MathJax.startup && window.MathJax.startup.promise) {
+  window.MathJax.startup.promise.then(renderPreview);
+}

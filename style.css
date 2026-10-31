@@ -149,6 +149,42 @@ h2 {
   background: var(--accent);
 }
 
+.panel-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.output-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.output-body textarea {
+  flex: 0 0 42%;
+  border-bottom: 1px solid var(--line);
+}
+
+.formula-preview {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  place-items: center;
+  overflow: auto;
+  padding: 12px;
+  background: var(--surface);
+}
+
+.formula-preview[data-empty="true"] {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.formula-preview mjx-container {
+  max-width: 100%;
+}
+
 #copyBtn.is-copied {
   background: #9aa4ae;
   color: #fff;

@@ -39,9 +39,15 @@
           <section class="panel output-panel">
             <div class="panel-header">
               <h2>识别结果</h2>
-              <button id="copyBtn" type="button">复制</button>
+              <div class="panel-actions">
+                <button id="copyBtn" type="button">复制源码</button>
+                <button id="copyImageBtn" type="button">复制图片</button>
+              </div>
             </div>
-            <textarea id="resultOutput" spellcheck="false" aria-label="可编辑的公式源码"></textarea>
+            <div class="output-body">
+              <textarea id="resultOutput" spellcheck="false" aria-label="可编辑的公式源码"></textarea>
+              <div class="formula-preview" id="formulaPreview" aria-label="公式渲染预览" data-empty="true"></div>
+            </div>
           </section>
         </div>
 
@@ -77,6 +83,13 @@
       </section>
     </main>
 
-    <script src="./app.js?v=20260707-6"></script>
+    <script>
+      window.MathJax = {
+        svg: { fontCache: "local" },
+        startup: { typeset: false },
+      };
+    </script>
+    <script src="./node_modules/mathjax-full/es5/tex-svg-full.js"></script>
+    <script src="./app.js?v=20261031-1"></script>
   </body>
 </html>
