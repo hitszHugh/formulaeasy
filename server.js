@@ -313,8 +313,20 @@ function parseLatexResult(text) {
   return { latex: normalizeRecognizedLatex(cleaned), packages: [], notes: [] };
 }
 
+function replaceCircledCommands(latex) {
+  return latex.replace(/\\textcircled\s*\{\s*(\d{1,2})\s*\}/g, (match, digits) => {
+    const value = Number(digits);
+
+    if (value >= 1 && value <= 20) {
+      return String.fromCodePoint(0x2460 + value - 1);
+    }
+
+    return match;
+  });
+}
+
 function normalizeRecognizedLatex(latex) {
-  const normalized = latex
+  const normalized = replaceCircledCommands(latex)
     .trim()
     .replace(/[^\S\r\n]+/g, " ")
     .replace(/\\int_\(([^()]+)\)\^\+\\inftye/g, "\\int_{$1}^{+\\infty} e")

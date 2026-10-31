@@ -70,12 +70,18 @@ function renderPreview() {
 
 function renderSvgToPng(svg, scale) {
   return new Promise((resolve, reject) => {
+    // MathJax 的 SVG 用 viewBox 描述真实尺寸，直接量 DOM 会被容器裁剪，
+    // 长公式导出后只剩可见的一截。这里按 viewBox + 字号换算。
+    const viewBox = svg.viewBox && svg.viewBox.baseVal;
+    const fontSize = Number.parseFloat(window.getComputedStyle(svg).fontSize) || 16;
     const bounds = svg.getBoundingClientRect();
-    const width = Math.max(1, Math.round(bounds.width * scale));
-    const height = Math.max(1, Math.round(bounds.height * scale));
+    const width = viewBox && viewBox.width ? (viewBox.width / 1000) * fontSize : bounds.width;
+    const height = viewBox && viewBox.height ? (viewBox.height / 1000) * fontSize : bounds.height;
+    const padding = 12;
     const clone = svg.cloneNode(true);
-    clone.setAttribute("width", String(bounds.width));
-    clone.setAttribute("height", String(bounds.height));
+    clone.setAttribute("width", String(width));
+    clone.setAttribute("height", String(height));
+    clone.removeAttribute("style");
 
     const source = new XMLSerializer().serializeToString(clone);
     const url = URL.createObjectURL(new Blob([source], { type: "image/svg+xml;charset=utf-8" }));
@@ -83,12 +89,12 @@ function renderSvgToPng(svg, scale) {
 
     image.onload = () => {
       const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
+      canvas.width = Math.max(1, Math.ceil(width * scale) + padding * 2);
+      canvas.height = Math.max(1, Math.ceil(height * scale) + padding * 2);
       const context = canvas.getContext("2d");
       context.fillStyle = "#ffffff";
-      context.fillRect(0, 0, width, height);
-      context.drawImage(image, 0, 0, width, height);
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, padding, padding, Math.ceil(width * scale), Math.ceil(height * scale));
       URL.revokeObjectURL(url);
       canvas.toBlob(
         (blob) => (blob ? resolve(blob) : reject(new Error("canvas 导出失败"))),

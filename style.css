@@ -182,7 +182,7 @@ h2 {
 }
 
 .formula-preview mjx-container {
-  max-width: 100%;
+  max-width: none;
 }
 
 #copyBtn.is-copied {

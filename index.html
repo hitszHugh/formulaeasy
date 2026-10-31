@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>公式图片转 Word / LaTeX</title>
+    <title>公式图片�?Word / LaTeX</title>
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
@@ -12,7 +12,7 @@
         <header class="topbar">
           <div>
             <p class="eyebrow">Math Formula</p>
-            <h1 id="page-title">公式图片转 Word / LaTeX</h1>
+            <h1 id="page-title">公式图片�?Word / LaTeX</h1>
           </div>
           <button class="cancel-button" id="clearBtn" type="button" title="取消">
             <span>取消</span>
@@ -30,7 +30,7 @@
             <div class="drop-zone" id="dropZone" tabindex="0" role="region" aria-label="原图预览，可滚动查看完整图片">
               <div class="preview-empty" id="previewEmpty">
                 <strong>拖入、粘贴或选择图片</strong>
-                <span>支持截图后 Ctrl+V、照片、PNG、JPG</span>
+                <span>支持截图�?Ctrl+V、照片、PNG、JPG</span>
               </div>
               <img id="previewImage" alt="公式图片预览" hidden />
             </div>
@@ -54,9 +54,9 @@
         <section class="latex-metadata" id="latexMetadata" aria-label="LaTeX 编译建议" hidden>
           <h2>所需宏包（模型建议）</h2>
           <pre id="packagesOutput"></pre>
-          <h2>说明与待核对项</h2>
+          <h2>说明与待核对�?/h2>
           <ul id="notesOutput"></ul>
-          <p>公式为数学片段，粘贴到数学环境内使用；宏包建议需自行核对，编辑公式后不会自动更新。</p>
+          <p>公式为数学片段，粘贴到数学环境内使用；宏包建议需自行核对，编辑公式后不会自动更新�?/p>
         </section>
 
         <section class="tools" aria-label="识别选项">
@@ -73,10 +73,10 @@
           <button id="recognizeBtn" type="button" disabled>识别图片</button>
         </section>
 
-        <section class="preview" aria-label="状态">
+        <section class="preview" aria-label="状�?>
           <div class="file-info">
             <strong id="fileName">未选择图片</strong>
-            <span>先上传清晰公式截图</span>
+            <span>先上传清晰公式截�?/span>
           </div>
           <div class="status" id="statusText" role="status" aria-live="polite">准备就绪</div>
         </section>
@@ -85,11 +85,14 @@
 
     <script>
       window.MathJax = {
+        tex: {
+          macros: { textcircled: ["\\enclose{circle}{#1}", 1] },
+        },
         svg: { fontCache: "local" },
         startup: { typeset: false },
       };
     </script>
     <script src="./node_modules/mathjax-full/es5/tex-svg-full.js"></script>
-    <script src="./app.js?v=20261031-1"></script>
+    <script src="./app.js?v=20261031-2"></script>
   </body>
 </html>

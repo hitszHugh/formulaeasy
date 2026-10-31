@@ -47,3 +47,9 @@ test("normalization keeps source newlines", () => {
 
   assert.equal(normalizeRecognizedLatex(input), input);
 });
+
+test("textcircled digits become circled characters", () => {
+  assert.equal(normalizeRecognizedLatex("\\textcircled{3}"), "③");
+  assert.equal(normalizeRecognizedLatex("\\textcircled {12}"), "⑫");
+  assert.equal(normalizeRecognizedLatex("\\textcircled{99}"), "\\textcircled{99}");
+});
