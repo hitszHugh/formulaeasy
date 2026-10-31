@@ -8,7 +8,7 @@ test("fractions and radicals become UnicodeMath", () => {
 });
 
 test("n-ary operators keep their limits and the operand slot", () => {
-  assert.equal(latexToUnicodeMath(String.raw`\int_{0}^{1}x\,dx`), "∫_0^1▒x dx");
+  assert.equal(latexToUnicodeMath(String.raw`\int_{0}^{1}x\,dx`), "∫_0^1▒x\u2009dx");
   assert.equal(latexToUnicodeMath(String.raw`\sum_{i=1}^{n}i`), "∑_(i=1)^n▒i");
 });
 
