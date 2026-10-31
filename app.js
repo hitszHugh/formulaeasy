@@ -5,8 +5,9 @@ const previewImage = document.querySelector("#previewImage");
 const previewEmpty = document.querySelector("#previewEmpty");
 const recognizeBtn = document.querySelector("#recognizeBtn");
 const copyBtn = document.querySelector("#copyBtn");
+const copyImageBtn = document.querySelector("#copyImageBtn");
 const clearBtn = document.querySelector("#clearBtn");
-const outputFormatInputs = document.querySelectorAll('input[name="outputFormat"]');
+const outputTargetInputs = document.querySelectorAll('input[name="outputTarget"]');
 const resultOutput = document.querySelector("#resultOutput");
 const statusText = document.querySelector("#statusText");
 const fileName = document.querySelector("#fileName");
@@ -15,11 +16,27 @@ const metadata = document.querySelector("#latexMetadata");
 const packagesOutput = document.querySelector("#packagesOutput");
 const notesOutput = document.querySelector("#notesOutput");
 const formulaPreview = document.querySelector("#formulaPreview");
-const copyImageBtn = document.querySelector("#copyImageBtn");
+const wordHint = document.querySelector("#wordHint");
+
 let selectedFile = null;
+let latexSource = "";
+let wordSource = "";
+let wordSourceFor = "";
 let previewTimer = null;
+let wordRequestId = 0;
+let hasMetadata = false;
+
+function setStatus(message) {
+  statusText.textContent = message;
+}
+
+function getOutputTarget() {
+  const selected = [...outputTargetInputs].find((input) => input.checked);
+  return selected ? selected.value : "latex";
+}
 
 function clearMetadata() {
+  hasMetadata = false;
   metadata.hidden = true;
   packagesOutput.textContent = "";
   notesOutput.replaceChildren();
@@ -27,16 +44,139 @@ function clearMetadata() {
 
 function showMetadata(data) {
   const packages = Array.isArray(data.packages) ? data.packages : [];
+  const notes = Array.isArray(data.notes) ? data.notes : [];
+
   packagesOutput.textContent = packages.length
     ? packages.map((name) => `\\usepackage{${name}}`).join("\n")
     : "模型未提供宏包建议，请按公式内容核对。";
+
   notesOutput.replaceChildren();
-  for (const note of Array.isArray(data.notes) ? data.notes : []) {
+  for (const note of notes) {
     const item = document.createElement("li");
     item.textContent = note;
     notesOutput.append(item);
   }
-  metadata.hidden = getOutputFormat() !== "latex";
+
+  hasMetadata = packages.length > 0 || notes.length > 0;
+  updateMetadataVisibility();
+}
+
+function updateMetadataVisibility() {
+  metadata.hidden = !hasMetadata || getOutputTarget() !== "latex";
+}
+
+function setSelectedFile(file, source = "file") {
+  if (!file) {
+    return;
+  }
+
+  if (!file.type.startsWith("image/")) {
+    setStatus("请选择图片文件");
+    return;
+  }
+
+  selectedFile = file;
+  fileName.textContent =
+    source === "paste" ? `粘贴图片 ${new Date().toLocaleTimeString()}` : file.name;
+  latexSource = "";
+  wordSource = "";
+  wordSourceFor = "";
+  clearMetadata();
+  renderOutput();
+  recognizeBtn.disabled = false;
+
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    previewImage.src = reader.result;
+    previewImage.hidden = false;
+    previewEmpty.hidden = true;
+    dropZone.scrollTop = 0;
+    dropZone.scrollLeft = 0;
+  });
+  reader.readAsDataURL(file);
+
+  if (source === "paste") {
+    flashDropZone();
+    setStatus("已粘贴图片，可以开始识别");
+  } else {
+    setStatus("图片已选择，可以开始识别");
+  }
+}
+
+function getImageFromClipboard(event) {
+  const items = [...(event.clipboardData?.items || [])];
+  const imageItem = items.find((item) => item.type.startsWith("image/"));
+  return imageItem ? imageItem.getAsFile() : null;
+}
+
+function flashDropZone() {
+  dropZone.classList.add("is-pasted");
+  window.setTimeout(() => dropZone.classList.remove("is-pasted"), 700);
+}
+
+async function recognizeImage() {
+  if (!selectedFile) {
+    setStatus("请先选择一张公式图片");
+    return;
+  }
+
+  clearMetadata();
+  const formData = new FormData();
+  formData.append("formulaImage", selectedFile);
+
+  recognizeBtn.disabled = true;
+  setStatus("正在识别图片...");
+
+  try {
+    const response = await fetch("/api/recognize", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "识别失败");
+    }
+
+    latexSource = data.latex || "";
+    wordSource = data.word || "";
+    wordSourceFor = wordSource ? latexSource : "";
+    showMetadata(data);
+    renderOutput();
+    setStatus("识别完成");
+  } catch (error) {
+    latexSource = "";
+    wordSource = "";
+    wordSourceFor = "";
+    clearMetadata();
+    renderOutput();
+    setStatus(error.message);
+  } finally {
+    recognizeBtn.disabled = false;
+  }
+}
+
+function renderOutput() {
+  const target = getOutputTarget();
+
+  if (target === "word") {
+    resultOutput.readOnly = true;
+    resultOutput.value = wordSource;
+    formulaPreview.hidden = true;
+    wordHint.hidden = false;
+    copyImageBtn.disabled = true;
+    ensureWordSource();
+  } else {
+    resultOutput.readOnly = false;
+    resultOutput.value = latexSource;
+    formulaPreview.hidden = false;
+    wordHint.hidden = true;
+    copyImageBtn.disabled = false;
+    renderPreview();
+  }
+
+  updateMetadataVisibility();
 }
 
 function schedulePreview() {
@@ -45,7 +185,7 @@ function schedulePreview() {
 }
 
 function renderPreview() {
-  const latex = resultOutput.value.trim();
+  const latex = latexSource.trim();
 
   if (!latex) {
     formulaPreview.replaceChildren();
@@ -65,6 +205,51 @@ function renderPreview() {
     formulaPreview.replaceChildren(window.MathJax.tex2svg(latex, { display: true }));
   } catch (error) {
     formulaPreview.textContent = `渲染失败：${error.message || error}`;
+  }
+}
+
+async function ensureWordSource() {
+  if (!latexSource.trim()) {
+    wordSource = "";
+    wordSourceFor = "";
+    resultOutput.value = "";
+    return;
+  }
+
+  if (wordSourceFor === latexSource) {
+    resultOutput.value = wordSource;
+    return;
+  }
+
+  const requestId = wordRequestId + 1;
+  wordRequestId = requestId;
+
+  try {
+    const response = await fetch("/api/word", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ latex: latexSource }),
+    });
+    const data = await response.json();
+
+    if (requestId !== wordRequestId) {
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error(data.error || "转换失败");
+    }
+
+    wordSource = data.word || "";
+    wordSourceFor = latexSource;
+
+    if (getOutputTarget() === "word") {
+      resultOutput.value = wordSource;
+    }
+  } catch (error) {
+    if (requestId === wordRequestId) {
+      setStatus(`Word 转换失败：${error.message || error}`);
+    }
   }
 }
 
@@ -143,166 +328,34 @@ async function copyImage() {
   }
 }
 
-function setStatus(message) {
-  statusText.textContent = message;
-}
-
-function getOutputFormat() {
-  const selected = [...outputFormatInputs].find((input) => input.checked);
-  return selected ? selected.value : "latex";
-}
-
-function setSelectedFile(file, source = "file") {
-  if (!file) {
-    return;
-  }
-
-  if (!file.type.startsWith("image/")) {
-    setStatus("请选择图片文件");
-    return;
-  }
-
-  selectedFile = file;
-  fileName.textContent =
-    source === "paste" ? `粘贴图片 ${new Date().toLocaleTimeString()}` : file.name;
-  resultOutput.value = "";
-  clearMetadata();
-  recognizeBtn.disabled = false;
-
-  const reader = new FileReader();
-  reader.addEventListener("load", () => {
-    previewImage.src = reader.result;
-    previewImage.hidden = false;
-    previewEmpty.hidden = true;
-    dropZone.scrollTop = 0;
-    dropZone.scrollLeft = 0;
-  });
-  reader.readAsDataURL(file);
-
-  if (source === "paste") {
-    flashDropZone();
-    setStatus("已粘贴图片，可以开始识别");
-  } else {
-    setStatus("图片已选择，可以开始识别");
-  }
-}
-
-function getImageFromClipboard(event) {
-  const items = [...(event.clipboardData?.items || [])];
-  const imageItem = items.find((item) => item.type.startsWith("image/"));
-  return imageItem ? imageItem.getAsFile() : null;
-}
-
-function flashDropZone() {
-  dropZone.classList.add("is-pasted");
-  window.setTimeout(() => dropZone.classList.remove("is-pasted"), 700);
-}
-
-async function recognizeImage() {
-  if (!selectedFile) {
-    setStatus("请先选择一张公式图片");
-    return;
-  }
-
-  clearMetadata();
-  const formData = new FormData();
-  formData.append("formulaImage", selectedFile);
-  formData.append("format", getOutputFormat());
-
-  recognizeBtn.disabled = true;
-  setStatus("正在识别图片...");
-
-  try {
-    const response = await fetch("/api/recognize", {
-      method: "POST",
-      body: formData,
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || "识别失败");
-    }
-
-    resultOutput.value = normalizeDisplayedFormula(
-      getOutputFormat() === "latex" ? data.latex : data.word,
-      getOutputFormat(),
-    );
-    showMetadata(data);
-    renderPreview();
-    setStatus("识别完成");
-  } catch (error) {
-    resultOutput.value = "";
-    clearMetadata();
-    renderPreview();
-    setStatus(error.message);
-  } finally {
-    recognizeBtn.disabled = false;
-  }
-}
-
-function normalizeDisplayedFormula(value, format) {
-  if (!value) {
-    return "";
-  }
-
-  const latex = value
-    .trim()
-    .replace(/[^\S\r\n]+/g, " ")
-    .replace(
-      /\\int_\(-\\infty\)\^\+\\inftye\^\{-x\^2\}dx/g,
-      "\\int_{-\\infty}^{+\\infty}e^{-x^2}dx",
-    )
-    .replace(
-      /\\int_\(-\\infty\)\^\+\\infty\s*e\^\{-x\^2\}dx/g,
-      "\\int_{-\\infty}^{+\\infty}e^{-x^2}dx",
-    )
-    .replace(
-      /\\int_\{-\\infty\}\^\{\+\\infty\}\s*e\^\{-x\^\{2\}\}\\,?dx/g,
-      "\\int_{-\\infty}^{+\\infty}e^{-x^2}dx",
-    )
-    .replace(
-      /\\int_-\\infty\^\+\\infty▒e\^\(-x\^2\)dx/g,
-      "\\int_{-\\infty}^{+\\infty}e^{-x^2}dx",
-    )
-    .replace(
-      /\\int_-\\infty\^\+\\infty▒e\^\(-x\^2\)\s*d\s*x/g,
-      "\\int_{-\\infty}^{+\\infty}e^{-x^2}dx",
-    );
-
-  if (format === "latex") {
-    return latex;
-  }
-
-  if (latex === "\\int_{-\\infty}^{+\\infty}e^{-x^2}dx") {
-    return latex;
-  }
-
-  return latex.replace(
-    /\\int_\{-\\infty\}\^\{\+\\infty\}e\^\{-x\^2\}dx/g,
-    "\\int_-\\infty^+\\infty▒e^(-x^2)dx",
-  );
-}
-
-async function copyResult() {
-  const text = resultOutput.value.trim();
-
-  if (!text) {
-    setStatus("没有可复制的识别结果");
-    return;
-  }
-
+async function writeClipboardText(text) {
   try {
     await navigator.clipboard.writeText(text);
-    flashCopyButton();
-    setStatus("已复制识别结果");
   } catch {
     resultOutput.focus();
     resultOutput.select();
     document.execCommand("copy");
-    flashCopyButton();
-    setStatus("已复制识别结果");
   }
+}
+
+async function copyResult() {
+  const target = getOutputTarget();
+
+  if (target === "image") {
+    await copyImage();
+    return;
+  }
+
+  const text = (target === "word" ? wordSource : latexSource).trim();
+
+  if (!text) {
+    setStatus(target === "word" ? "还没有可复制的 Word 公式" : "没有可复制的识别结果");
+    return;
+  }
+
+  await writeClipboardText(text);
+  flashCopyButton();
+  setStatus(target === "word" ? "已复制 Word 线性公式" : "已复制 LaTeX");
 }
 
 function flashCopyButton() {
@@ -313,9 +366,11 @@ function flashCopyButton() {
 function clearAll() {
   selectedFile = null;
   imageInput.value = "";
-  resultOutput.value = "";
+  latexSource = "";
+  wordSource = "";
+  wordSourceFor = "";
   clearMetadata();
-  renderPreview();
+  renderOutput();
   previewImage.src = "";
   previewImage.hidden = true;
   previewEmpty.hidden = false;
@@ -330,7 +385,27 @@ recognizeBtn.addEventListener("click", recognizeImage);
 copyBtn.addEventListener("click", copyResult);
 copyImageBtn.addEventListener("click", copyImage);
 clearBtn.addEventListener("click", clearAll);
-resultOutput.addEventListener("input", schedulePreview);
+
+resultOutput.addEventListener("input", () => {
+  if (getOutputTarget() === "word") {
+    return;
+  }
+
+  latexSource = resultOutput.value;
+  schedulePreview();
+});
+
+[...outputTargetInputs].forEach((input) => {
+  input.addEventListener("change", () => {
+    renderOutput();
+
+    if (getOutputTarget() === "word") {
+      setStatus("已切换到 Word 线性格式");
+    } else if (getOutputTarget() === "image") {
+      setStatus("已切换到图片输出");
+    }
+  });
+});
 
 window.addEventListener("paste", (event) => {
   const imageFile = getImageFromClipboard(event);
@@ -341,15 +416,6 @@ window.addEventListener("paste", (event) => {
 
   event.preventDefault();
   setSelectedFile(imageFile, "paste");
-});
-
-[...outputFormatInputs].forEach((input) => {
-  input.addEventListener("change", () => {
-    metadata.hidden = true;
-    if (resultOutput.value.trim()) {
-      setStatus("输出格式已切换，请重新识别以刷新结果");
-    }
-  });
 });
 
 ["dragenter", "dragover"].forEach((eventName) => {

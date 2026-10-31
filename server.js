@@ -60,6 +60,17 @@ app.post("/api/recognize", upload.single("formulaImage"), async (req, res) => {
   }
 });
 
+app.post("/api/word", express.json(), (req, res) => {
+  const latex = typeof req.body?.latex === "string" ? req.body.latex : "";
+
+  if (!latex.trim()) {
+    res.status(400).json({ error: "缺少 latex 内容" });
+    return;
+  }
+
+  res.json({ word: convertLatexToWordLinear(latex) });
+});
+
 app.get(/.*/, (_req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });

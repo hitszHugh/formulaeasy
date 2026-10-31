@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>公式图片�?Word / LaTeX</title>
+    <title>公式图片转 LaTeX / 图片 / Word</title>
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
@@ -12,7 +12,7 @@
         <header class="topbar">
           <div>
             <p class="eyebrow">Math Formula</p>
-            <h1 id="page-title">公式图片�?Word / LaTeX</h1>
+            <h1 id="page-title">公式图片转 LaTeX / 图片 / Word</h1>
           </div>
           <button class="cancel-button" id="clearBtn" type="button" title="取消">
             <span>取消</span>
@@ -27,10 +27,16 @@
               <input id="imageInput" type="file" accept="image/*" hidden />
             </div>
 
-            <div class="drop-zone" id="dropZone" tabindex="0" role="region" aria-label="原图预览，可滚动查看完整图片">
+            <div
+              class="drop-zone"
+              id="dropZone"
+              tabindex="0"
+              role="region"
+              aria-label="原图预览，可滚动查看完整图片"
+            >
               <div class="preview-empty" id="previewEmpty">
                 <strong>拖入、粘贴或选择图片</strong>
-                <span>支持截图�?Ctrl+V、照片、PNG、JPG</span>
+                <span>支持截图后 Ctrl+V、照片、PNG、JPG</span>
               </div>
               <img id="previewImage" alt="公式图片预览" hidden />
             </div>
@@ -40,43 +46,51 @@
             <div class="panel-header">
               <h2>识别结果</h2>
               <div class="panel-actions">
-                <button id="copyBtn" type="button">复制源码</button>
+                <button id="copyBtn" type="button">复制</button>
                 <button id="copyImageBtn" type="button">复制图片</button>
               </div>
             </div>
             <div class="output-body">
               <textarea id="resultOutput" spellcheck="false" aria-label="可编辑的公式源码"></textarea>
               <div class="formula-preview" id="formulaPreview" aria-label="公式渲染预览" data-empty="true"></div>
+              <p class="word-hint" id="wordHint" hidden>
+                Word 线性格式无法预览。复制后粘进 Word 公式框（Alt + =）即可成型；多行会被拆成多条独立公式。
+              </p>
             </div>
           </section>
         </div>
 
-        <section class="latex-metadata" id="latexMetadata" aria-label="LaTeX 编译建议" hidden>
-          <h2>所需宏包（模型建议）</h2>
+        <details class="latex-metadata" id="latexMetadata" hidden>
+          <summary>宏包与说明</summary>
+          <h3>所需宏包（模型建议）</h3>
           <pre id="packagesOutput"></pre>
-          <h2>说明与待核对�?/h2>
+          <h3>说明与待核对项</h3>
           <ul id="notesOutput"></ul>
-          <p>公式为数学片段，粘贴到数学环境内使用；宏包建议需自行核对，编辑公式后不会自动更新�?/p>
-        </section>
+          <p>公式为数学片段，粘贴到数学环境内使用；宏包建议需自行核对，编辑公式后不会自动更新。</p>
+        </details>
 
-        <section class="tools" aria-label="识别选项">
-          <div class="segmented" role="radiogroup" aria-label="输出格式">
+        <section class="tools" aria-label="输出目标">
+          <div class="segmented segmented--three" role="radiogroup" aria-label="输出目标">
             <label>
-              <input type="radio" name="outputFormat" value="word" />
-              <span>Word 默认</span>
+              <input type="radio" name="outputTarget" value="latex" checked />
+              <span>LaTeX</span>
             </label>
             <label>
-              <input type="radio" name="outputFormat" value="latex" checked />
-              <span>LaTeX</span>
+              <input type="radio" name="outputTarget" value="image" />
+              <span>图片</span>
+            </label>
+            <label>
+              <input type="radio" name="outputTarget" value="word" />
+              <span>Word</span>
             </label>
           </div>
           <button id="recognizeBtn" type="button" disabled>识别图片</button>
         </section>
 
-        <section class="preview" aria-label="状�?>
+        <section class="preview" aria-label="状态">
           <div class="file-info">
             <strong id="fileName">未选择图片</strong>
-            <span>先上传清晰公式截�?/span>
+            <span>先上传清晰公式截图</span>
           </div>
           <div class="status" id="statusText" role="status" aria-live="polite">准备就绪</div>
         </section>
@@ -93,6 +107,6 @@
       };
     </script>
     <script src="./node_modules/mathjax-full/es5/tex-svg-full.js"></script>
-    <script src="./app.js?v=20261031-2"></script>
+    <script src="./app.js?v=20261031-3"></script>
   </body>
 </html>
