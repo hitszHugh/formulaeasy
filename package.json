@@ -4,7 +4,7 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "test": "node --test test/latex.test.js test/contract.test.js",
+    "test": "node --test test/latex.test.js test/word.test.js test/contract.test.js",
     "test:tex": "node --test test/tex-compile.test.js",
     "start": "node server.js"
   },

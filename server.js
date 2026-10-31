@@ -4,6 +4,7 @@ const fs = require("fs");
 const multer = require("multer");
 const os = require("os");
 const path = require("path");
+const { latexToUnicodeMath } = require("./lib/word");
 
 loadLocalEnv(path.join(__dirname, ".env"));
 
@@ -522,27 +523,7 @@ function ensureAlignment(latex) {
 }
 
 function convertLatexToWordLinear(latex) {
-  if (latex.trim() === "\\int_{-\\infty}^{+\\infty}e^{-x^2}dx") {
-    return "\\int_{-\\infty}^{+\\infty}e^{-x^2}dx";
-  }
-
-  return latex
-    .replace(/\\left\s*/g, "")
-    .replace(/\\right\s*/g, "")
-    .replace(/\\sum_\{([^{}]+)\}\^\{([^{}]+)\}/g, "\\sum_($1)^($2)▒")
-    .replace(/\\prod_\{([^{}]+)\}\^\{([^{}]+)\}/g, "\\prod_($1)^($2)▒")
-    .replace(/\\int_\{([^{}]+)\}\^\{([^{}]+)\}/g, "\\int_$1^$2▒")
-    .replace(/e\^\{-x\^\{2\}\}/g, "e^(-x^2)")
-    .replace(/e\^\{-x\^2\}/g, "e^(-x^2)")
-    .replace(/\\sqrt\{([^{}]+)\}/g, "\\sqrt($1)")
-    .replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, "($1)/($2)")
-    .replace(/([A-Za-z])_\{([^{}]+)\}/g, "$1_($2)")
-    .replace(/\^\{([^{}]+)\}/g, "^($1)")
-    .replace(/\\,d([A-Za-z])/g, " d$1")
-    .replace(/\\,/g, " ")
-    .replace(/\s*▒\s*/g, "▒")
-    .replace(/[ \t]{2,}/g, " ")
-    .trim();
+  return latexToUnicodeMath(latex);
 }
 
 function loadLocalEnv(filePath) {
