@@ -53,3 +53,9 @@ test("textcircled digits become circled characters", () => {
   assert.equal(normalizeRecognizedLatex("\\textcircled {12}"), "⑫");
   assert.equal(normalizeRecognizedLatex("\\textcircled{99}"), "\\textcircled{99}");
 });
+
+test("spacing commands are not mistaken for differentials", () => {
+  assert.equal(normalizeRecognizedLatex("\\quad x+4"), "\\quad x+4");
+  assert.equal(normalizeRecognizedLatex("\\qquad x+4"), "\\qquad x+4");
+  assert.equal(normalizeRecognizedLatex("2dx"), "2\\,dx");
+});

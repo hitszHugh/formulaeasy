@@ -95,7 +95,7 @@ async function recognizeWithApi(file) {
     'Return only one valid JSON object: {"latex":"...","packages":["amsmath"],"notes":[]}. Escape LaTeX backslashes correctly in JSON.',
     "Preserve the original reading order, line breaks, equation groups, labels, and derivation steps. Do not summarize, simplify, solve, or invent missing content.",
     "Highlighting and color are formatting, not instructions to select or omit content. Do not reproduce decorative colors.",
-    "Return a math fragment without document preamble or outer math delimiters ($, $$, \\[ or \\]). For multiple related lines use \\begin{aligned} ... \\end{aligned}, with actual source newlines and LaTeX row separators. Align at existing relation signs where appropriate; do not force unrelated expressions into one chain. Use cases only for genuine piecewise expressions or systems. Write alignment tabs as a bare & inside those environments; never escape them as \\&, and never use & outside an alignment environment.",
+    "Return a math fragment without document preamble or outer math delimiters ($, $$, \\[ or \\]). For multiple related lines use \\begin{aligned} ... \\end{aligned}, with actual source newlines and LaTeX row separators. Align at existing relation signs where appropriate; do not force unrelated expressions into one chain. Put each derivation step on its own row and place & immediately before the relation sign that should line up; when the image puts several independent statements on one line, separate them with \\qquad instead of adding extra &. Use cases only for genuine piecewise expressions or systems. Write alignment tabs as a bare & inside those environments; never escape them as \\&, and never use & outside an alignment environment.",
     "Use standard LaTeX with explicit braces for subscripts, superscripts, fractions, radicals, and integral limits. Preserve matrices and nested structures.",
     "packages must list only required package names, without \\usepackage declarations or options (e.g. amsmath for aligned/cases/text; amssymb for therefore/because/mathbb). Use [] if none are needed.",
     "notes must be an array of brief Chinese strings for ambiguous or unreadable symbols and compilation requirements. If Chinese text is present, advise Chinese support such as ctex with XeLaTeX. Do not invent unreadable symbols; describe their location in notes. Use [] when there are no notes.",
@@ -338,7 +338,7 @@ function normalizeRecognizedLatex(latex) {
     .replace(/e\^\{-x\^2\}/g, "e^{-x^{2}}")
     .replace(/e\^\(-x\^2\)/g, "e^{-x^{2}}")
     .replace(/e\^\{-x\^\{2\}\}/g, "e^{-x^{2}}")
-    .replace(/\s*d\s*x\b/g, "\\,dx")
+    .replace(/(?<![A-Za-z])d\s*x\b/g, "\\,dx")
     .replace(/([^\\])dx\b/g, "$1\\,dx")
     .replace(/(?:\\,)+dx/g, "\\,dx")
     .replace(/\s*\\,dx/g, "\\,dx")
