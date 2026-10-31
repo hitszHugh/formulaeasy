@@ -208,7 +208,11 @@ function renderPreview() {
   }
 
   try {
-    formulaPreview.replaceChildren(window.MathJax.tex2svg(latex, { display: true }));
+    const rendered = window.MathJax.tex2svg(latex, { display: true });
+
+    // 去掉无障碍 MathML 副本，避免浏览器用原生 MathML 再渲染一份。
+    rendered.querySelector("mjx-assistive-mml")?.remove();
+    formulaPreview.replaceChildren(rendered);
   } catch (error) {
     formulaPreview.textContent = `渲染失败：${error.message || error}`;
   }

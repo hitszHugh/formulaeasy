@@ -185,6 +185,21 @@ h2 {
   max-width: none;
 }
 
+/* MathJax 会在公式里附带一份无障碍 MathML 副本。没有隐藏规则时，
+   浏览器会用原生 MathML 再渲染一遍，看起来就是"两份公式"，且对齐方式不同。 */
+mjx-assistive-mml {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+  clip: rect(1px, 1px, 1px, 1px);
+  display: block !important;
+}
+
 #copyBtn.is-copied {
   background: #9aa4ae;
   color: #fff;
