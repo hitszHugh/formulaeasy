@@ -143,7 +143,10 @@ async function recognizeImage() {
 
     latexSource = data.latex || "";
     wordSource = data.word || "";
-    wordSourceFor = wordSource ? latexSource : "";
+    // 识别响应里只有线性文本，没有 MathML；这里不能把它标记为"已缓存"，
+    // 否则切到 Word 时会走缓存、拿不到 MathML，复制就退化成纯文本。
+    mathmlSource = "";
+    wordSourceFor = "";
     showMetadata(data);
     renderOutput();
     setStatus("识别完成");
@@ -396,7 +399,11 @@ async function copyWordFormula() {
 
   await writeClipboardText(wordSource);
   flashCopyButton();
-  setStatus("已复制线性公式（浏览器不支持富文本剪贴板）");
+  setStatus(
+    mathmlSource
+      ? "已复制线性文本（浏览器不支持富文本剪贴板）"
+      : "已复制线性文本（MathML 生成失败，Word 里不会变成公式）",
+  );
 }
 
 function flashCopyButton() {
