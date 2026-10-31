@@ -4,6 +4,7 @@ const fs = require("fs");
 const multer = require("multer");
 const os = require("os");
 const path = require("path");
+const temml = require("temml");
 const { latexToUnicodeMath } = require("./lib/word");
 
 loadLocalEnv(path.join(__dirname, ".env"));
@@ -68,7 +69,10 @@ app.post("/api/word", express.json(), (req, res) => {
     return;
   }
 
-  res.json({ word: convertLatexToWordLinear(latex) });
+  res.json({
+    word: convertLatexToWordLinear(latex),
+    mathml: toMathML(latex),
+  });
 });
 
 app.get(/.*/, (_req, res) => {
@@ -597,25 +601,11 @@ function splitAlignmentRows(body) {
   return rows.map((row) => row.trim()).filter(Boolean);
 }
 
-function tidyAlignment(latex) {
-  const beginTag = "\\begin{aligned}";
-  const endTag = "\\end{aligned}";
-  const start = latex.indexOf(beginTag);
-
-  if (start === -1) {
-    return latex;
-  }
-
-  const end = latex.indexOf(endTag, start);
-
-  if (end === -1) {
-    return latex;
-  }
-
-  const rows = splitAlignmentRows(latex.slice(start + beginTag.length, end));
+function tidyAlignedBody(body) {
+  const rows = splitAlignmentRows(body);
 
   if (rows.length < 2) {
-    return latex;
+    return null;
   }
 
   const leftCells = rows.map((row) => row.split("&")[0].replace(/\s+/g, " ").trim());
@@ -626,7 +616,7 @@ function tidyAlignment(latex) {
   // 左列长度差太大或存在空左列时，aligned 会把整块推成阶梯状。
   // 这种情况把所有行挪到对齐点右侧，让它们共享同一条左边界。
   if (!hasEmptyLeftCell && spread <= 10) {
-    return latex;
+    return null;
   }
 
   const tidied = rows
@@ -642,11 +632,57 @@ function tidyAlignment(latex) {
     })
     .join(" \\\\\n");
 
-  return `${latex.slice(0, start)}${beginTag}\n${tidied}\n${endTag}${latex.slice(end + endTag.length)}`;
+  return `\n${tidied}\n`;
+}
+
+function tidyAlignment(latex) {
+  const beginTag = "\\begin{aligned}";
+  const endTag = "\\end{aligned}";
+  let output = "";
+  let cursor = 0;
+
+  while (true) {
+    const start = latex.indexOf(beginTag, cursor);
+
+    if (start === -1) {
+      break;
+    }
+
+    const end = latex.indexOf(endTag, start);
+
+    if (end === -1) {
+      break;
+    }
+
+    const body = latex.slice(start + beginTag.length, end);
+    const tidied = tidyAlignedBody(body);
+
+    output += latex.slice(cursor, start) + beginTag + (tidied ?? body) + endTag;
+    cursor = end + endTag.length;
+  }
+
+  return output + latex.slice(cursor);
 }
 
 function convertLatexToWordLinear(latex) {
   return latexToUnicodeMath(latex);
+}
+
+// Word 粘 MathML 会直接生成公式对象；xmlns 缺失时它不认。
+function toMathML(latex) {
+  try {
+    const mathml = temml.renderToString(latex, {
+      displayMode: true,
+      throwOnError: false,
+      annotate: false,
+    });
+
+    return mathml.includes("xmlns=")
+      ? mathml
+      : mathml.replace("<math ", '<math xmlns="http://www.w3.org/1998/Math/MathML" ');
+  } catch {
+    return "";
+  }
 }
 
 function loadLocalEnv(filePath) {

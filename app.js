@@ -21,6 +21,7 @@ const wordHint = document.querySelector("#wordHint");
 let selectedFile = null;
 let latexSource = "";
 let wordSource = "";
+let mathmlSource = "";
 let wordSourceFor = "";
 let previewTimer = null;
 let wordRequestId = 0;
@@ -80,6 +81,7 @@ function setSelectedFile(file, source = "file") {
     source === "paste" ? `粘贴图片 ${new Date().toLocaleTimeString()}` : file.name;
   latexSource = "";
   wordSource = "";
+  mathmlSource = "";
   wordSourceFor = "";
   clearMetadata();
   renderOutput();
@@ -148,6 +150,7 @@ async function recognizeImage() {
   } catch (error) {
     latexSource = "";
     wordSource = "";
+    mathmlSource = "";
     wordSourceFor = "";
     clearMetadata();
     renderOutput();
@@ -211,6 +214,7 @@ function renderPreview() {
 async function ensureWordSource() {
   if (!latexSource.trim()) {
     wordSource = "";
+    mathmlSource = "";
     wordSourceFor = "";
     resultOutput.value = "";
     return;
@@ -241,6 +245,7 @@ async function ensureWordSource() {
     }
 
     wordSource = data.word || "";
+    mathmlSource = data.mathml || "";
     wordSourceFor = latexSource;
 
     if (getOutputTarget() === "word") {
@@ -346,16 +351,52 @@ async function copyResult() {
     return;
   }
 
-  const text = (target === "word" ? wordSource : latexSource).trim();
+  if (target === "word") {
+    await copyWordFormula();
+    return;
+  }
+
+  const text = latexSource.trim();
 
   if (!text) {
-    setStatus(target === "word" ? "还没有可复制的 Word 公式" : "没有可复制的识别结果");
+    setStatus("没有可复制的识别结果");
     return;
   }
 
   await writeClipboardText(text);
   flashCopyButton();
-  setStatus(target === "word" ? "已复制 Word 线性公式" : "已复制 LaTeX");
+  setStatus("已复制 LaTeX");
+}
+
+async function copyWordFormula() {
+  await ensureWordSource();
+
+  if (!wordSource) {
+    setStatus("还没有可复制的 Word 公式");
+    return;
+  }
+
+  if (navigator.clipboard && window.ClipboardItem && mathmlSource) {
+    const html = `<!doctype html><html><head><meta charset="utf-8"></head><body>${mathmlSource}</body></html>`;
+
+    try {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/html": new Blob([html], { type: "text/html" }),
+          "text/plain": new Blob([wordSource], { type: "text/plain" }),
+        }),
+      ]);
+      flashCopyButton();
+      setStatus("已复制公式，粘进 Word 即为公式对象");
+      return;
+    } catch {
+      // 富文本剪贴板不可用时退回线性文本。
+    }
+  }
+
+  await writeClipboardText(wordSource);
+  flashCopyButton();
+  setStatus("已复制线性公式（浏览器不支持富文本剪贴板）");
 }
 
 function flashCopyButton() {
@@ -368,6 +409,7 @@ function clearAll() {
   imageInput.value = "";
   latexSource = "";
   wordSource = "";
+  mathmlSource = "";
   wordSourceFor = "";
   clearMetadata();
   renderOutput();

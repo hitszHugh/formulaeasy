@@ -54,8 +54,8 @@
               <textarea id="resultOutput" spellcheck="false" aria-label="可编辑的公式源码"></textarea>
               <div class="formula-preview" id="formulaPreview" aria-label="公式渲染预览" data-empty="true"></div>
               <p class="word-hint" id="wordHint" hidden>
-                Word 线性格式是纯文本，直接粘进文档只会变成文字。请先在 Word 里按 Alt + = 插入公式，再粘贴；
-                多行会被拆成多条独立公式。
+                复制会同时放入公式（MathML）与线性文本，直接粘进 Word 就是可编辑的公式对象；
+                浏览器不支持富文本剪贴板时会退化为线性文本。
               </p>
             </div>
           </section>
