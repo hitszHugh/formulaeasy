@@ -1,7 +1,7 @@
-const test = require("node:test");
+﻿const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { ensureAlignment, normalizeRecognizedLatex } = require("../server.js");
+const { ensureAlignment, normalizeRecognizedLatex, tidyAlignment } = require("../server.js");
 
 test("alignment tabs escaped as \\& are unescaped inside aligned", () => {
   const input = "\\begin{aligned}a\\&=b\\\\c\\&=d\\end{aligned}";
@@ -49,8 +49,8 @@ test("normalization keeps source newlines", () => {
 });
 
 test("textcircled digits become circled characters", () => {
-  assert.equal(normalizeRecognizedLatex("\\textcircled{3}"), "③");
-  assert.equal(normalizeRecognizedLatex("\\textcircled {12}"), "⑫");
+  assert.equal(normalizeRecognizedLatex("\\textcircled{3}"), "\u2462");
+  assert.equal(normalizeRecognizedLatex("\\textcircled {12}"), "\u246b");
   assert.equal(normalizeRecognizedLatex("\\textcircled{99}"), "\\textcircled{99}");
 });
 
@@ -58,4 +58,28 @@ test("spacing commands are not mistaken for differentials", () => {
   assert.equal(normalizeRecognizedLatex("\\quad x+4"), "\\quad x+4");
   assert.equal(normalizeRecognizedLatex("\\qquad x+4"), "\\qquad x+4");
   assert.equal(normalizeRecognizedLatex("2dx"), "2\\,dx");
+});
+
+test("ragged alignment columns are pushed to a shared left edge", () => {
+  const input = "\\begin{aligned}a&=b\\\\&\\Rightarrow c\\\\d&=e\\end{aligned}";
+  const output = tidyAlignment(input);
+  const rows = output.split("\n").filter((line) => line.trim().startsWith("&"));
+
+  assert.equal(rows.length, 3);
+  assert.ok(rows.every((row) => row.trim().startsWith("& ")));
+});
+
+test("uniform alignment columns are left untouched", () => {
+  const input = "\\begin{aligned}a_1&=b_1\\\\a_2&=b_2\\end{aligned}";
+
+  assert.equal(tidyAlignment(input), input);
+});
+
+test("nested environments survive row splitting", () => {
+  const input =
+    "\\begin{aligned}\\begin{cases}x=1\\\\y=2\\end{cases}&\\Rightarrow z\\\\&\\Rightarrow w\\end{aligned}";
+  const output = tidyAlignment(input);
+
+  assert.ok(output.includes("\\begin{cases}x=1\\\\y=2\\end{cases}"), output);
+  assert.ok(output.includes("\\end{aligned}"));
 });

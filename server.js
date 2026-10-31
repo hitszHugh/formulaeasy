@@ -344,7 +344,7 @@ function normalizeRecognizedLatex(latex) {
     .replace(/\s*\\,dx/g, "\\,dx")
     .trim();
 
-  return ensureAlignment(compactGaussianIntegral(normalized));
+  return tidyAlignment(ensureAlignment(compactGaussianIntegral(normalized)));
 }
 
 function compactGaussianIntegral(latex) {
@@ -534,6 +534,106 @@ function ensureAlignment(latex) {
   return `\\begin{aligned}\n${toAlignmentRows(unescaped)}\n\\end{aligned}`;
 }
 
+function splitAlignmentRows(body) {
+  const rows = [];
+  let current = "";
+  let braceDepth = 0;
+  let environmentDepth = 0;
+
+  for (let index = 0; index < body.length; index += 1) {
+    const rest = body.slice(index);
+
+    if (rest.startsWith("\\begin{") || rest.startsWith("\\end{")) {
+      const isBegin = rest.startsWith("\\begin{");
+      const close = body.indexOf("}", index);
+      const tokenEnd = close === -1 ? body.length : close + 1;
+
+      environmentDepth += isBegin ? 1 : -1;
+      if (environmentDepth < 0) {
+        environmentDepth = 0;
+      }
+
+      current += body.slice(index, tokenEnd);
+      index = tokenEnd - 1;
+      continue;
+    }
+
+    const char = body[index];
+
+    if (char === "\\") {
+      if (body[index + 1] === "\\" && braceDepth === 0 && environmentDepth === 0) {
+        rows.push(current);
+        current = "";
+        index += 1;
+        continue;
+      }
+
+      current += char + (body[index + 1] ?? "");
+      index += 1;
+      continue;
+    }
+
+    if (char === "{") {
+      braceDepth += 1;
+    } else if (char === "}") {
+      braceDepth -= 1;
+    }
+
+    current += char;
+  }
+
+  rows.push(current);
+  return rows.map((row) => row.trim()).filter(Boolean);
+}
+
+function tidyAlignment(latex) {
+  const beginTag = "\\begin{aligned}";
+  const endTag = "\\end{aligned}";
+  const start = latex.indexOf(beginTag);
+
+  if (start === -1) {
+    return latex;
+  }
+
+  const end = latex.indexOf(endTag, start);
+
+  if (end === -1) {
+    return latex;
+  }
+
+  const rows = splitAlignmentRows(latex.slice(start + beginTag.length, end));
+
+  if (rows.length < 2) {
+    return latex;
+  }
+
+  const leftCells = rows.map((row) => row.split("&")[0].replace(/\s+/g, " ").trim());
+  const filled = leftCells.filter(Boolean);
+  const hasEmptyLeftCell = filled.length !== leftCells.length;
+  const spread = filled.length ? Math.max(...filled.map((cell) => cell.length)) - Math.min(...filled.map((cell) => cell.length)) : 0;
+
+  // 左列长度差太大或存在空左列时，aligned 会把整块推成阶梯状。
+  // 这种情况把所有行挪到对齐点右侧，让它们共享同一条左边界。
+  if (!hasEmptyLeftCell && spread <= 10) {
+    return latex;
+  }
+
+  const tidied = rows
+    .map((row) => {
+      const [left, ...rest] = row.split("&");
+      const head = left.trim();
+      const right = rest.join("&").trim();
+      const startsWithRelation = /^(=|\\le|\\leq|\\ge|\\geq|\\neq|\\ne|<|>|\\Rightarrow|\\Leftarrow|\\Leftrightarrow|\\to|\\approx|\\equiv|\\sim)/.test(right);
+      const endsWithEnvironment = /\\end\{[A-Za-z]+\}$/.test(head);
+      const separator = startsWithRelation ? (endsWithEnvironment ? "\\;" : "") : "\\quad ";
+
+      return (head ? `& ${head}${separator}${right}` : `& ${right}`).trimEnd();
+    })
+    .join(" \\\\\n");
+
+  return `${latex.slice(0, start)}${beginTag}\n${tidied}\n${endTag}${latex.slice(end + endTag.length)}`;
+}
+
 function convertLatexToWordLinear(latex) {
   return latexToUnicodeMath(latex);
 }
@@ -574,6 +674,7 @@ function loadLocalEnv(filePath) {
 
 module.exports = {
   ensureAlignment,
+  tidyAlignment,
   parseLatexResult,
   convertLatexToWordLinear,
   normalizeRecognizedLatex,
