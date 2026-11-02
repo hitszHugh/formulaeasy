@@ -17,6 +17,7 @@ const packagesOutput = document.querySelector("#packagesOutput");
 const notesOutput = document.querySelector("#notesOutput");
 const formulaPreview = document.querySelector("#formulaPreview");
 const wordHint = document.querySelector("#wordHint");
+const downloadDocxBtn = document.querySelector("#downloadDocxBtn");
 
 let selectedFile = null;
 let latexSource = "";
@@ -166,6 +167,8 @@ async function recognizeImage() {
 function renderOutput() {
   const target = getOutputTarget();
 
+  downloadDocxBtn.hidden = target !== "word";
+
   if (target === "word") {
     resultOutput.readOnly = true;
     resultOutput.value = wordSource;
@@ -308,12 +311,43 @@ function renderSvgToPng(svg, scale) {
   });
 }
 
-function downloadBlob(blob) {
+function downloadBlob(blob, filename) {
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = `formula-${Date.now()}.png`;
+  link.download = filename;
   link.click();
   URL.revokeObjectURL(link.href);
+}
+
+async function downloadDocx() {
+  if (!latexSource.trim()) {
+    setStatus("还没有可导出的公式");
+    return;
+  }
+
+  downloadDocxBtn.disabled = true;
+  setStatus("正在生成 Word 文档...");
+
+  try {
+    const response = await fetch("/api/docx", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ latex: latexSource }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || "生成失败");
+    }
+
+    const blob = await response.blob();
+    downloadBlob(blob, `formula-${Date.now()}.docx`);
+    setStatus("Word 文档已下载，打开即为公式对象");
+  } catch (error) {
+    setStatus(`生成 Word 文档失败：${error.message || error}`);
+  } finally {
+    downloadDocxBtn.disabled = false;
+  }
 }
 
 async function copyImage() {
@@ -333,7 +367,7 @@ async function copyImage() {
       return;
     }
 
-    downloadBlob(png);
+    downloadBlob(png, `formula-${Date.now()}.png`);
     setStatus("当前浏览器不支持复制图片，已改为下载");
   } catch (error) {
     setStatus(`复制图片失败：${error.message || error}`);
@@ -437,6 +471,7 @@ imageInput.addEventListener("change", () => setSelectedFile(imageInput.files[0])
 recognizeBtn.addEventListener("click", recognizeImage);
 copyBtn.addEventListener("click", copyResult);
 copyImageBtn.addEventListener("click", copyImage);
+downloadDocxBtn.addEventListener("click", downloadDocx);
 clearBtn.addEventListener("click", clearAll);
 
 resultOutput.addEventListener("input", () => {

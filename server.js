@@ -75,6 +75,57 @@ app.post("/api/word", express.json(), (req, res) => {
   });
 });
 
+app.post("/api/docx", express.json({ limit: "2mb" }), async (req, res) => {
+  const latex = typeof req.body?.latex === "string" ? req.body.latex : "";
+
+  if (!latex.trim()) {
+    res.status(400).json({ error: "缺少 latex 内容" });
+    return;
+  }
+
+  const mathml = toMathML(latex);
+
+  if (!mathml) {
+    res.status(422).json({ error: "无法把公式转换为 MathML" });
+    return;
+  }
+
+  let workDir = "";
+
+  try {
+    workDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "formula-docx-"));
+    const mathmlPath = path.join(workDir, "mathml.xml");
+    const docxPath = path.join(workDir, "formula.docx");
+
+    await fs.promises.writeFile(mathmlPath, mathml, "utf8");
+    await runPowerShell([
+      "-NoProfile",
+      "-NonInteractive",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      path.join(__dirname, "scripts", "build-docx.ps1"),
+      "-MathmlPath",
+      mathmlPath,
+      "-OutputPath",
+      docxPath,
+    ]);
+
+    const buffer = await fs.promises.readFile(docxPath);
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+    res.setHeader("Content-Disposition", `attachment; filename="formula-${Date.now()}.docx"`);
+    res.send(buffer);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: `生成 Word 文档失败：${error.message || error}` });
+  } finally {
+    if (workDir) {
+      fs.promises.rm(workDir, { recursive: true, force: true }).catch(() => {});
+    }
+  }
+});
+
 app.get(/.*/, (_req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
@@ -229,6 +280,38 @@ function runProcess(command, args) {
             `本地 OCR 退出码为 ${code}。请先安装本地公式识别模型依赖。`,
         ),
       );
+    });
+  });
+}
+
+function runPowerShell(args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn("powershell.exe", args, {
+      cwd: __dirname,
+      windowsHide: true,
+    });
+    let stderr = "";
+
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString("utf8");
+    });
+
+    child.on("error", (error) => {
+      reject(new Error(`无法启动 PowerShell：${error.message}`));
+    });
+
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+
+      if (code === 3) {
+        reject(new Error("本机缺少 MML2OMML.XSL，需要安装 Microsoft Office 才能生成 .docx"));
+        return;
+      }
+
+      reject(new Error(stderr.trim() || `PowerShell 退出码 ${code}`));
     });
   });
 }
