@@ -18,6 +18,8 @@ const notesOutput = document.querySelector("#notesOutput");
 const formulaPreview = document.querySelector("#formulaPreview");
 const wordHint = document.querySelector("#wordHint");
 const downloadDocxBtn = document.querySelector("#downloadDocxBtn");
+const sourceLabel = document.querySelector("#sourceLabel");
+const readonlyBadge = document.querySelector("#readonlyBadge");
 
 let selectedFile = null;
 let latexSource = "";
@@ -28,8 +30,9 @@ let previewTimer = null;
 let wordRequestId = 0;
 let hasMetadata = false;
 
-function setStatus(message) {
+function setStatus(message, type = "info") {
   statusText.textContent = message;
+  statusText.dataset.type = type;
 }
 
 function getOutputTarget() {
@@ -128,7 +131,8 @@ async function recognizeImage() {
   formData.append("formulaImage", selectedFile);
 
   recognizeBtn.disabled = true;
-  setStatus("正在识别图片...");
+  recognizeBtn.dataset.busy = "true";
+  setStatus("正在识别图片...", "busy");
 
   try {
     const response = await fetch("/api/recognize", {
@@ -150,7 +154,7 @@ async function recognizeImage() {
     wordSourceFor = "";
     showMetadata(data);
     renderOutput();
-    setStatus("识别完成");
+    setStatus("识别完成", "ok");
   } catch (error) {
     latexSource = "";
     wordSource = "";
@@ -158,9 +162,10 @@ async function recognizeImage() {
     wordSourceFor = "";
     clearMetadata();
     renderOutput();
-    setStatus(error.message);
+    setStatus(error.message, "error");
   } finally {
     recognizeBtn.disabled = false;
+    recognizeBtn.dataset.busy = "false";
   }
 }
 
@@ -168,20 +173,23 @@ function renderOutput() {
   const target = getOutputTarget();
 
   downloadDocxBtn.hidden = target !== "word";
+  readonlyBadge.hidden = target !== "word";
+  sourceLabel.textContent = target === "word" ? "Word 线性格式" : "LaTeX 源码";
+  copyBtn.textContent =
+    target === "word" ? "复制 Word" : target === "image" ? "复制图片" : "复制 LaTeX";
+  copyImageBtn.hidden = target !== "latex";
 
   if (target === "word") {
     resultOutput.readOnly = true;
     resultOutput.value = wordSource;
     formulaPreview.hidden = true;
     wordHint.hidden = false;
-    copyImageBtn.disabled = true;
     ensureWordSource();
   } else {
     resultOutput.readOnly = false;
     resultOutput.value = latexSource;
     formulaPreview.hidden = false;
     wordHint.hidden = true;
-    copyImageBtn.disabled = false;
     renderPreview();
   }
 
@@ -263,7 +271,7 @@ async function ensureWordSource() {
     }
   } catch (error) {
     if (requestId === wordRequestId) {
-      setStatus(`Word 转换失败：${error.message || error}`);
+      setStatus(`Word 转换失败：${error.message || error}`, "error");
     }
   }
 }
@@ -342,9 +350,9 @@ async function downloadDocx() {
 
     const blob = await response.blob();
     downloadBlob(blob, `formula-${Date.now()}.docx`);
-    setStatus("Word 文档已下载，打开即为公式对象");
+    setStatus("Word 文档已下载，打开即为公式对象", "ok");
   } catch (error) {
-    setStatus(`生成 Word 文档失败：${error.message || error}`);
+    setStatus(`生成 Word 文档失败：${error.message || error}`, "error");
   } finally {
     downloadDocxBtn.disabled = false;
   }
@@ -363,14 +371,14 @@ async function copyImage() {
 
     if (navigator.clipboard && window.ClipboardItem) {
       await navigator.clipboard.write([new ClipboardItem({ "image/png": png })]);
-      setStatus("图片已复制到剪贴板");
+      setStatus("图片已复制到剪贴板", "ok");
       return;
     }
 
     downloadBlob(png, `formula-${Date.now()}.png`);
     setStatus("当前浏览器不支持复制图片，已改为下载");
   } catch (error) {
-    setStatus(`复制图片失败：${error.message || error}`);
+    setStatus(`复制图片失败：${error.message || error}`, "error");
   }
 }
 
@@ -406,7 +414,7 @@ async function copyResult() {
 
   await writeClipboardText(text);
   flashCopyButton();
-  setStatus("已复制 LaTeX");
+  setStatus("已复制 LaTeX", "ok");
 }
 
 async function copyWordFormula() {
@@ -428,7 +436,7 @@ async function copyWordFormula() {
         }),
       ]);
       flashCopyButton();
-      setStatus("已复制公式，粘进 Word 即为公式对象");
+      setStatus("已复制公式，粘进 Word 即为公式对象", "ok");
       return;
     } catch {
       // 富文本剪贴板不可用时退回线性文本。
@@ -465,6 +473,22 @@ function clearAll() {
   recognizeBtn.disabled = true;
   setStatus("准备就绪");
 }
+
+window.addEventListener("keydown", (event) => {
+  if (event.ctrlKey && event.key === "Enter") {
+    event.preventDefault();
+
+    if (!recognizeBtn.disabled) {
+      recognizeImage();
+    }
+
+    return;
+  }
+
+  if (event.key === "Escape") {
+    clearAll();
+  }
+});
 
 chooseBtn.addEventListener("click", () => imageInput.click());
 imageInput.addEventListener("change", () => setSelectedFile(imageInput.files[0]));
