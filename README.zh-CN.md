@@ -87,8 +87,8 @@ LaTeX 输出是不带外层定界符的数学片段，需要放进文档的数�
 以 ISC 许可发布，见 [LICENSE](LICENSE)。
 
 本项目基于
-[hitszHugh/Math-Formula-Picture-to-LaTex-or-Word-Default-Format-Web](https://github.com/hitszHugh/Math-Formula-Picture-to-LaTex-or-Word-Default-Format-Web)，
-其历史起点是 blueRita 的原始实现。原始作品的著作权仍归其作者所有。
+[blueRita/Math-Formula-Picture-to-LaTex-or-Word-Default-Format-Web](https://github.com/blueRita/Math-Formula-Picture-to-LaTex-or-Word-Default-Format-Web)。
+原始作品的著作权仍归其作者所有。
 
 本 fork 的改动：
 

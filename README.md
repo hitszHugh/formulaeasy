@@ -97,9 +97,8 @@ contains `&` without any alignment environment is wrapped in `aligned`.
 Released under the ISC license, see [LICENSE](LICENSE).
 
 This project is based on
-[hitszHugh/Math-Formula-Picture-to-LaTex-or-Word-Default-Format-Web](https://github.com/hitszHugh/Math-Formula-Picture-to-LaTex-or-Word-Default-Format-Web),
-whose history starts from blueRita's original implementation. Copyright in the
-original work remains with its author.
+[blueRita/Math-Formula-Picture-to-LaTex-or-Word-Default-Format-Web](https://github.com/blueRita/Math-Formula-Picture-to-LaTex-or-Word-Default-Format-Web).
+Copyright in the original work remains with its author.
 
 Changes made in this fork:
 

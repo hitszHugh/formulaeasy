@@ -1,7 +1,7 @@
 {
   "name": "formulaeasy",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.1.0",
+  "description": "Formula image to LaTeX / PNG / Word, running locally with your own vision model.",
   "main": "app.js",
   "scripts": {
     "test": "node --test test/latex.test.js test/word.test.js test/contract.test.js",
