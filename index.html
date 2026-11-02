@@ -4,19 +4,40 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FormulaEasy · 公式图片转 LaTeX / 图片 / Word</title>
-    <link rel="stylesheet" href="./style.css?v=20261102-2" />
+    <meta
+      name="description"
+      content="FormulaEasy：截图转可编译的 LaTeX、PNG 图片或 Word 公式。本地运行，模型自带。"
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232f5bd7'/%3E%3Ctext x='32' y='47' font-family='Georgia,serif' font-size='42' font-style='italic' font-weight='700' text-anchor='middle' fill='white'%3E%C6%92%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./style.css?v=20261103-1" />
   </head>
   <body>
     <main class="app-shell">
       <section class="workspace" aria-labelledby="page-title">
         <header class="topbar">
-          <div>
-            <p class="eyebrow">FormulaEasy</p>
-            <h1 id="page-title">公式图片转 LaTeX / 图片 / Word</h1>
+          <div class="brand">
+            <span class="brand-mark" aria-hidden="true">ƒ</span>
+            <div class="brand-text">
+              <h1 id="page-title">FormulaEasy</h1>
+              <p>公式图片转 LaTeX / 图片 / Word</p>
+            </div>
           </div>
-          <button class="ghost-button" id="clearBtn" type="button" title="清空当前图片与结果">
-            清空
-          </button>
+          <div class="topbar-actions">
+            <span class="version-chip">v0.1.0</span>
+            <a
+              class="ghost-button"
+              href="https://github.com/hitszHugh/formulaeasy"
+              target="_blank"
+              rel="noreferrer"
+              >GitHub</a
+            >
+            <button class="ghost-button" id="clearBtn" type="button" title="清空当前图片与结果">
+              清空
+            </button>
+          </div>
         </header>
 
         <div class="editor-grid">
@@ -36,7 +57,9 @@
             >
               <div class="preview-empty" id="previewEmpty">
                 <strong>拖入、粘贴或选择图片</strong>
-                <span>支持截图后 Ctrl+V、照片、PNG、JPG</span>
+                <span>
+                  截图后 <kbd>Ctrl</kbd> + <kbd>V</kbd> 直接粘贴，支持 PNG / JPG / 照片
+                </span>
               </div>
               <img id="previewImage" alt="公式图片预览" hidden />
             </div>
@@ -117,6 +140,18 @@
         <div class="status-bar">
           <span id="statusText" role="status" aria-live="polite" data-type="info">准备就绪</span>
         </div>
+
+        <footer class="site-footer">
+          <span>FormulaEasy v0.1.0</span>
+          <span class="dot">·</span>
+          <span>ISC License</span>
+          <span class="dot">·</span>
+          <a href="https://github.com/hitszHugh/formulaeasy" target="_blank" rel="noreferrer"
+            >GitHub</a
+          >
+          <span class="dot">·</span>
+          <span>本地运行，图片不出机器</span>
+        </footer>
       </section>
     </main>
 

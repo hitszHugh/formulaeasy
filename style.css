@@ -24,11 +24,14 @@ body {
   min-height: 100vh;
   font-family:
     Inter, "Segoe UI", "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
-  background: var(--bg);
   color: var(--text);
   font-size: 14px;
   display: flex;
   align-items: flex-start;
+  background:
+    radial-gradient(1100px 520px at 10% -14%, #e4ecff 0%, rgba(228, 236, 255, 0) 62%),
+    var(--bg);
+  background-color: var(--bg);
 }
 
 button,
@@ -67,25 +70,63 @@ h3 {
 
 .topbar {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
-.eyebrow {
-  margin: 0 0 6px;
-  color: var(--accent);
-  font-size: 12px;
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-mark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 13px;
+  background: linear-gradient(145deg, #3f6ae8, #2447ae);
+  box-shadow: 0 8px 20px rgba(47, 91, 215, 0.28);
+  color: #fff;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 25px;
+  font-style: italic;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  line-height: 1;
 }
 
-h1 {
-  font-size: 21px;
-  line-height: 1.25;
+.brand-text h1 {
+  font-size: 20px;
+  line-height: 1.1;
   font-weight: 700;
   letter-spacing: -0.01em;
+}
+
+.brand-text p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.version-chip {
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 h2 {
@@ -195,13 +236,17 @@ h2 {
 }
 
 .ghost-button {
+  display: inline-flex;
   min-height: 34px;
+  align-items: center;
+  justify-content: center;
   padding: 0 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: transparent;
   color: var(--text);
   font-weight: 500;
+  text-decoration: none;
   transition:
     border-color 0.15s ease,
     color 0.15s ease;
@@ -443,6 +488,42 @@ mjx-assistive-mml {
 
 .status-bar span[data-type="busy"] {
   color: var(--accent);
+}
+
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.site-footer a {
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--line);
+}
+
+.site-footer a:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.site-footer .dot {
+  opacity: 0.5;
+}
+
+kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: #fff;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 11px;
 }
 
 [hidden] {
