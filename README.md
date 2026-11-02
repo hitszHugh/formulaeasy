@@ -1,6 +1,40 @@
 # Math Formula OCR
 
-Formula image to LaTeX / Word-linear text web tool.
+Formula image to LaTeX / PNG / Word web tool. Runs locally, with your own
+OpenAI-compatible vision model.
+
+![Overview](docs/images/overview.png)
+
+## Features
+
+- **Editable source with live preview** — every keystroke re-renders through
+  MathJax; the same rendering is the source for PNG export.
+- **Three output targets** — LaTeX, image, or Word, chosen in the result panel.
+  The copy button follows the selected target.
+- **Word that is really an equation** — MathML goes on the clipboard, and a
+  `.docx` with real OMML equations can be downloaded.
+- **Structure preserved** — line breaks, `aligned` blocks, and Chinese labels
+  survive; ragged alignment columns are rewritten to a shared left edge.
+- **Compile-ready output** — the API returns `packages` and `notes`, so the
+  result compiles with the packages it names.
+- **Local and model-agnostic** — one Node process, any OpenAI-compatible vision
+  model, no image leaves the machine.
+
+### Output targets
+
+| Target | You get | How |
+| --- | --- | --- |
+| LaTeX | editable, compile-ready source | edit in place, then copy |
+| Image | white-background PNG at 3× scale | copy to clipboard or download |
+| Word | editable equation object | MathML clipboard, or `.docx` download |
+
+### Word output
+
+![Word output](docs/images/word.png)
+
+### Packages and notes
+
+![Packages and notes](docs/images/metadata.png)
 
 ## Run
 
