@@ -1,4 +1,4 @@
-# 公式图片转 LaTeX / 图片 / Word
+# FormulaEasy
 
 [English](README.md) · **简体中文**
 
@@ -50,9 +50,7 @@ http://localhost:3002
 
 `PORT` 从 `.env` 读取，未设置时默认 `3000`。
 
-## OCR 模式
-
-### API 模式
+## OCR 配置
 
 ```env
 OCR_PROVIDER=api
@@ -60,17 +58,6 @@ OPENAI_API_KEY=your_key
 OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 OCR_MODEL=qwen-vl-plus
 ```
-
-### 本地模式
-
-```env
-OCR_PROVIDER=local
-LOCAL_OCR_PYTHON=python
-LOCAL_OCR_SCRIPT=ocr/local_ocr.py
-```
-
-`ocr/local_ocr.py` 目前是占位脚本。换成真正的本地公式识别模型即可，例如
-Pix2Text、pix2tex 或 UniMERNet。
 
 ## 安全
 
@@ -92,25 +79,8 @@ LaTeX 输出是不带外层定界符的数学片段，需要放进文档的数�
 ## 排版说明
 
 返回值是数学片段，必须放在数学环境里（`\[ ... \]`、`equation`、`align` 等）。
-编译时常见两类失败。
-
-**`Misplaced alignment tab character &`** 表示片段不在对齐环境内，或文档没有加载
-`amsmath`。缺少 `amsmath` 时 `\begin{aligned}` 是未定义环境，LaTeX 会继续处理
-文本，于是每个 `&` 都单独报一次错。加载 `\usepackage{amsmath}` 并让片段处于数学
-模式即可。服务端会归一化它能证明的两种情况：`aligned`/`cases`/`matrix` 里的 `\&`
-还原成 `&`；含 `&` 但没有任何对齐环境的片段会被包上一层 `aligned`。
-
-**带圈序号（如 ①）** 在 `ctex` 下会渲染成空白。这类字符位于 U+2460–U+24FF，
-xeCJK 默认不把它归入 CJK 字符类，于是从拉丁字体取字形——而拉丁字体没有这些
-字形。LaTeX 不会报错，只在日志里写 `Missing character`，输出里静默缺字。声明该
-区段即可修复，因为 CJK 字体通常包含这些字形：
-
-```latex
-\xeCJKDeclareCharClass{CJK}{"2460->"24FF}
-```
-
-也可以把序号写成 `\textcircled{1}`，不依赖字体。本节只记录成因：应用无法知道你
-用哪个引擎和文档类，所以不会替你往导言区加东西。
+服务端会归一化它能证明的情况：`aligned`/`cases`/`matrix` 里的 `\&` 还原成 `&`；
+含 `&` 但没有任何对齐环境的片段会被包上一层 `aligned`。
 
 ## 许可与致谢
 
@@ -126,4 +96,4 @@ xeCJK 默认不把它归入 CJK 字符类，于是从拉丁字体取字形——
 - Word 输出改写为 UnicodeMath，并增加 MathML 剪贴板与 `.docx` 导出
 - LaTeX 归一化：对齐环境、`\textcircled`、间距命令、参差 `aligned`、微分间距
 - 按场景组织的测试（`npm test`、`npm run test:tex`）
-- 常见编译失败的文档
+- 英文与简体中文两版 README
