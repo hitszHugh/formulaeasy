@@ -1,5 +1,7 @@
 # Math Formula OCR
 
+**English** · [简体中文](README.zh-CN.md)
+
 Formula image to LaTeX / PNG / Word web tool. Runs locally, with your own
 OpenAI-compatible vision model.
 
