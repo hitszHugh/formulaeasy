@@ -9,7 +9,10 @@
     "start": "node server.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Hugh Huang <1766137762@qq.com>",
+  "contributors": [
+    "blueRita <huyuxuan_2020@126.com>"
+  ],
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {

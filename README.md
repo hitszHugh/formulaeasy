@@ -87,3 +87,21 @@ these glyphs:
 Writing the number as `\textcircled{1}` also works and does not depend on the
 font. This section documents the cause only: the app cannot know which engine or
 document class you compile with, so it does not add preamble lines for you.
+
+## License and credits
+
+Released under the ISC license, see [LICENSE](LICENSE).
+
+This project is based on
+[hitszHugh/Math-Formula-Picture-to-LaTex-or-Word-Default-Format-Web](https://github.com/hitszHugh/Math-Formula-Picture-to-LaTex-or-Word-Default-Format-Web),
+whose history starts from blueRita's original implementation. Copyright in the
+original work remains with its author.
+
+Changes made in this fork:
+
+- MathJax rendering, live preview, and PNG export via canvas
+- Word output rewritten to UnicodeMath, plus MathML clipboard and `.docx` export
+- LaTeX normalization: alignment environments, `\textcircled`, spacing commands,
+  ragged `aligned` blocks, differential spacing
+- Scenario-based test suite (`npm test`, `npm run test:tex`)
+- Documentation for common compile failures
