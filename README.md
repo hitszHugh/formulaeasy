@@ -28,6 +28,8 @@ OpenAI-compatible vision model.
 | Image | white-background PNG at 3× scale | copy to clipboard or download |
 | Word | editable equation object | MathML clipboard, or `.docx` download |
 
+![Word mode](docs/images/word-mode.png)
+
 ### Word output
 
 ![Word output](docs/images/word.png)
