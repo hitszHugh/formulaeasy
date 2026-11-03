@@ -19,8 +19,10 @@ OpenAI-compatible vision model.
   survive; ragged alignment columns are rewritten to a shared left edge.
 - **Compile-ready output** — the API returns `packages` and `notes`, so the
   result compiles with the packages it names.
-- **Local and model-agnostic** — one Node process, any OpenAI-compatible vision
-  model, no image leaves the machine.
+- **Runs locally, endpoint of your choice** — one Node process, no account and no
+  service of ours in the middle. Images go only to the model endpoint you
+  configure; point it at a local server (Ollama, vLLM, ...) and nothing leaves
+  the machine.
 
 ### Output targets
 
